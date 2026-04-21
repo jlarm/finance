@@ -23,7 +23,20 @@ const props = defineProps<{
     cancelHref?: string;
     submitLabel?: string;
     lockCategory?: boolean;
+    deletable?: boolean;
 }>();
+
+const emit = defineEmits<{
+    success: [];
+    cancel: [];
+    delete: [];
+}>();
+
+const monthValue = computed(() => {
+    const v = props.target?.period_month;
+    if (!v) return undefined;
+    return typeof v === 'string' && v.length >= 7 ? v.slice(0, 7) : v;
+});
 
 const categoryOptions = computed(() =>
     props.categories.map((cat) => ({ value: cat.id, label: cat.name })),
@@ -34,6 +47,7 @@ const categoryOptions = computed(() =>
     <Form
         :action="action"
         class="flex flex-col gap-4"
+        @success="emit('success')"
         v-slot="{ errors, processing }"
     >
         <div class="grid gap-2">
@@ -56,7 +70,7 @@ const categoryOptions = computed(() =>
                 id="period_month"
                 name="period_month"
                 type="month"
-                :default-value="target?.period_month"
+                :default-value="monthValue"
                 required
             />
             <InputError :message="errors.period_month" />
@@ -77,13 +91,34 @@ const categoryOptions = computed(() =>
             <InputError :message="errors.amount" />
         </div>
 
-        <div class="flex justify-end gap-2">
-            <Button v-if="cancelHref" variant="ghost" as-child>
-                <Link :href="cancelHref">Cancel</Link>
+        <div class="flex items-center justify-between gap-2">
+            <Button
+                v-if="deletable"
+                type="button"
+                variant="ghost"
+                class="text-destructive hover:text-destructive"
+                :disabled="processing"
+                @click="emit('delete')"
+            >
+                Delete
             </Button>
-            <Button type="submit" :disabled="processing">
-                {{ submitLabel ?? 'Save target' }}
-            </Button>
+            <span v-else></span>
+            <div class="flex gap-2">
+                <Button v-if="cancelHref" variant="ghost" as-child>
+                    <Link :href="cancelHref">Cancel</Link>
+                </Button>
+                <Button
+                    v-else
+                    type="button"
+                    variant="ghost"
+                    @click="emit('cancel')"
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" :disabled="processing">
+                    {{ submitLabel ?? 'Save target' }}
+                </Button>
+            </div>
         </div>
     </Form>
 </template>
