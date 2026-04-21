@@ -248,6 +248,118 @@ class FinancialDataSummaryBuilder
         ];
     }
 
+    /**
+     * Context for AssistantAffordabilityPrompt (chat).
+     *
+     * @return array<string, mixed>
+     */
+    public function forAffordability(User $user, string $question): array
+    {
+        $dashboard = $this->dashboard->summary($user);
+
+        return [
+            'tone' => $this->tone($user),
+            'currency' => $this->currency($user),
+            'question' => $question,
+            'available_cash' => $dashboard['available_cash'],
+            'safe_to_spend' => $dashboard['safe_to_spend'],
+            'upcoming_bills_total' => round(
+                (float) $dashboard['upcoming_bills']->sum('amount'),
+                2,
+            ),
+            'top_categories' => $this->topCategoriesForPeriod(
+                $user,
+                Carbon::parse($dashboard['period']['start']),
+                Carbon::parse($dashboard['period']['end']),
+            ),
+        ];
+    }
+
+    /**
+     * Context for AssistantGeneralPrompt (chat).
+     *
+     * @param  array<int, array{role: string, content: string}>  $history
+     * @return array<string, mixed>
+     */
+    public function forChat(User $user, string $question, array $history = []): array
+    {
+        $thisMonthStart = today()->copy()->startOfMonth();
+        $thisMonthEnd = today()->copy()->endOfMonth();
+        $lastMonthStart = $thisMonthStart->copy()->subMonthNoOverflow()->startOfMonth();
+        $lastMonthEnd = $thisMonthStart->copy()->subMonthNoOverflow()->endOfMonth();
+
+        return [
+            'tone' => $this->tone($user),
+            'currency' => $this->currency($user),
+            'question' => $question,
+            'history' => $history,
+            'summary' => [
+                'current_month' => [
+                    'income' => round(
+                        (float) IncomeSource::query()
+                            ->where('user_id', $user->id)
+                            ->between($thisMonthStart->toDateString(), $thisMonthEnd->toDateString())
+                            ->sum('amount'),
+                        2,
+                    ),
+                    'spending' => round(
+                        (float) Expense::query()
+                            ->where('user_id', $user->id)
+                            ->between($thisMonthStart->toDateString(), $thisMonthEnd->toDateString())
+                            ->sum('amount'),
+                        2,
+                    ),
+                ],
+                'last_month' => [
+                    'income' => round(
+                        (float) IncomeSource::query()
+                            ->where('user_id', $user->id)
+                            ->between($lastMonthStart->toDateString(), $lastMonthEnd->toDateString())
+                            ->sum('amount'),
+                        2,
+                    ),
+                    'spending' => round(
+                        (float) Expense::query()
+                            ->where('user_id', $user->id)
+                            ->between($lastMonthStart->toDateString(), $lastMonthEnd->toDateString())
+                            ->sum('amount'),
+                        2,
+                    ),
+                ],
+                'categories_last_month' => $this->topCategoriesForPeriod($user, $lastMonthStart, $lastMonthEnd),
+                'debts' => $user->debts()
+                    ->active()
+                    ->get(['name', 'balance', 'apr', 'minimum_payment'])
+                    ->map(fn ($d): array => [
+                        'name' => (string) $d->name,
+                        'balance' => round((float) $d->balance, 2),
+                        'apr' => round((float) ($d->apr ?? 0), 2),
+                        'minimum_payment' => round((float) ($d->minimum_payment ?? 0), 2),
+                    ])
+                    ->all(),
+                'goals' => $user->savingsGoals()
+                    ->active()
+                    ->get(['name', 'current_amount', 'target_amount', 'target_date'])
+                    ->map(fn ($g): array => [
+                        'name' => (string) $g->name,
+                        'current_amount' => round((float) $g->current_amount, 2),
+                        'target_amount' => round((float) $g->target_amount, 2),
+                        'target_date' => $g->target_date?->toDateString(),
+                    ])
+                    ->all(),
+                'upcoming_bills' => $this->dashboard->upcomingBills($user)
+                    ->take($this->upcomingBillLimit)
+                    ->map(fn ($b): array => [
+                        'name' => (string) $b->name,
+                        'amount' => round((float) $b->amount, 2),
+                        'due_on' => $b->next_due_on?->toDateString(),
+                    ])
+                    ->values()
+                    ->all(),
+            ],
+        ];
+    }
+
     private function tone(User $user): string
     {
         return $user->financeSettings?->ai_tone ?? 'supportive';

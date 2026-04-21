@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\BudgetTargetController;
 use App\Http\Controllers\DashboardController;
@@ -43,6 +44,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/finance', [SettingsController::class, 'edit'])->name('finance-settings.edit');
     Route::patch('settings/finance', [SettingsController::class, 'update'])->name('finance-settings.update');
+
+    Route::post('assistant/chat', [AssistantController::class, 'store'])->name('assistant.chat');
 });
 
 require __DIR__.'/settings.php';
