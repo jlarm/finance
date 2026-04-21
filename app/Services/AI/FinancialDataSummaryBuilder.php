@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\CashFlowForecastService;
 use App\Services\DashboardService;
 use App\Services\DebtPayoffService;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -36,7 +37,7 @@ class FinancialDataSummaryBuilder
      *
      * @return array<string, mixed>
      */
-    public function forMonthly(User $user, Carbon $month): array
+    public function forMonthly(User $user, CarbonInterface $month): array
     {
         $start = $month->copy()->startOfMonth();
         $end = $month->copy()->endOfMonth();
@@ -221,7 +222,7 @@ class FinancialDataSummaryBuilder
                 $projected = null;
                 $needsAttention = false;
 
-                if ($goal->target_date instanceof Carbon) {
+                if ($goal->target_date instanceof CarbonInterface) {
                     $monthsRemaining = max(0, (int) $today->diffInMonths($goal->target_date, false));
                     $projected = round($current + ($avgContribution * $monthsRemaining), 2);
                     $needsAttention = $projected < $target;
@@ -373,7 +374,7 @@ class FinancialDataSummaryBuilder
     /**
      * @return array<int, array{category_id: int, name: string, spent: float, target: ?float}>
      */
-    private function topCategoriesForPeriod(User $user, Carbon $start, Carbon $end): array
+    private function topCategoriesForPeriod(User $user, CarbonInterface $start, CarbonInterface $end): array
     {
         $targets = $this->budgetTargetsForPeriod($user, $start);
 
@@ -393,7 +394,7 @@ class FinancialDataSummaryBuilder
     /**
      * @return Collection<int, array{category_id: int, name: string, spent: float}>
      */
-    private function categoryTotals(User $user, Carbon $start, Carbon $end): Collection
+    private function categoryTotals(User $user, CarbonInterface $start, CarbonInterface $end): Collection
     {
         return Expense::query()
             ->where('expenses.user_id', $user->id)
@@ -414,7 +415,7 @@ class FinancialDataSummaryBuilder
     /**
      * @return array<int, float> [expense_category_id => target amount]
      */
-    private function budgetTargetsForPeriod(User $user, Carbon $start): array
+    private function budgetTargetsForPeriod(User $user, CarbonInterface $start): array
     {
         return BudgetTarget::query()
             ->where('user_id', $user->id)

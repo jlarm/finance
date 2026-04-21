@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use JsonException;
+use Laravel\Ai\Enums\Lab;
 use Throwable;
+
+use function Laravel\Ai\agent;
 
 /**
  * Chat assistant pipeline.
@@ -235,18 +238,55 @@ class ChatFinancialAssistantService
      */
     protected function callAiSdk(Prompt $prompt, array $context): string
     {
-        /** @var mixed $ai */
-        $ai = app('laravel-ai');
+        [$instructions, $userContent] = $this->splitPromptMessages($prompt, $context);
 
-        $response = $ai->text()
-            ->using($prompt->model())
-            ->withMessages($prompt->buildMessages($context))
-            ->withResponseFormat($prompt->schema())
-            ->withMaxTokens($prompt->maxTokens())
-            ->withTemperature($prompt->temperature())
-            ->generate();
+        $response = agent(instructions: $instructions)
+            ->prompt($userContent, provider: Lab::Anthropic, model: $prompt->model());
 
-        return (string) $response->text();
+        return $this->stripCodeFences((string) $response);
+    }
+
+    private function stripCodeFences(string $text): string
+    {
+        $trimmed = trim($text);
+
+        if (preg_match('/^```(?:json)?\s*\n?(.*?)\n?```$/s', $trimmed, $match) === 1) {
+            return trim($match[1]);
+        }
+
+        return $trimmed;
+    }
+
+    /**
+     * Flatten the Prompt's system/user messages into the shape the AI SDK
+     * anonymous agent expects (instructions + single user prompt). The
+     * response schema is appended to instructions so the model knows the
+     * expected JSON shape without relying on provider-side structured output.
+     *
+     * @param  array<string, mixed>  $context
+     * @return array{0: string, 1: string}
+     */
+    private function splitPromptMessages(Prompt $prompt, array $context): array
+    {
+        $systemParts = [];
+        $userParts = [];
+
+        foreach ($prompt->buildMessages($context) as $message) {
+            if (($message['role'] ?? '') === 'system') {
+                $systemParts[] = $message['content'];
+            } else {
+                $userParts[] = $message['content'];
+            }
+        }
+
+        $schemaJson = json_encode(
+            $prompt->schema()['schema'] ?? $prompt->schema(),
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        );
+
+        $instructions = implode("\n\n", $systemParts)."\n\nResponse JSON schema:\n".$schemaJson;
+
+        return [$instructions, implode("\n\n", $userParts)];
     }
 
     /**
