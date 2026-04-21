@@ -45,6 +45,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('settings/finance', [SettingsController::class, 'edit'])->name('finance-settings.edit');
     Route::patch('settings/finance', [SettingsController::class, 'update'])->name('finance-settings.update');
 
+    Route::get('assistant', [AssistantController::class, 'index'])->name('assistant.index');
     Route::post('assistant/chat', [AssistantController::class, 'store'])->name('assistant.chat');
 });
 
