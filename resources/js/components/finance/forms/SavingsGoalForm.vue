@@ -4,6 +4,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import FormDatePicker from '@/components/finance/FormDatePicker.vue';
 import type { RouteDefinition } from '@/wayfinder';
 
 type SavingsGoal = {
@@ -35,7 +36,7 @@ defineProps<{
                 name="name"
                 type="text"
                 maxlength="120"
-                :value="goal?.name"
+                :default-value="goal?.name"
                 placeholder="Emergency fund, vacation, etc."
                 required
             />
@@ -52,7 +53,7 @@ defineProps<{
                     step="0.01"
                     min="0.01"
                     inputmode="decimal"
-                    :value="goal?.target_amount"
+                    :default-value="goal?.target_amount"
                     required
                 />
                 <InputError :message="errors.target_amount" />
@@ -66,7 +67,7 @@ defineProps<{
                     step="0.01"
                     min="0"
                     inputmode="decimal"
-                    :value="goal?.current_amount ?? '0'"
+                    :default-value="goal?.current_amount ?? '0'"
                 />
                 <InputError :message="errors.current_amount" />
             </div>
@@ -74,11 +75,11 @@ defineProps<{
 
         <div class="grid gap-2">
             <Label for="target_date">Target date</Label>
-            <Input
+            <FormDatePicker
                 id="target_date"
                 name="target_date"
-                type="date"
-                :value="goal?.target_date ?? ''"
+                :default-value="goal?.target_date"
+                placeholder="Pick a target date"
             />
             <InputError :message="errors.target_date" />
         </div>
@@ -90,8 +91,7 @@ defineProps<{
                 name="notes"
                 rows="3"
                 class="rounded-md border bg-background px-3 py-2 text-sm"
-                :value="goal?.notes ?? ''"
-            ></textarea>
+            >{{ goal?.notes ?? '' }}</textarea>
             <InputError :message="errors.notes" />
         </div>
 

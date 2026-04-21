@@ -58,7 +58,13 @@ defineOptions({
     },
 });
 
-const http = useHttp();
+const http = useHttp<
+    { message: string; conversation_id: string | null },
+    ChatResponse
+>(AssistantController.store(), {
+    message: '',
+    conversation_id: null,
+});
 
 const messages = ref<Message[]>([...props.initialMessages]);
 const conversationId = ref<string | null>(props.initialConversationId);
@@ -122,12 +128,10 @@ const sendMessage = async (text?: string): Promise<void> => {
     scrollToBottom();
 
     try {
-        const result = (await http.submit(AssistantController.store(), {
-            data: {
-                message: content,
-                conversation_id: conversationId.value,
-            },
-        })) as ChatResponse;
+        http.message = content;
+        http.conversation_id = conversationId.value;
+
+        const result = await http.submit();
 
         conversationId.value = result.conversation_id;
 

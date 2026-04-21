@@ -10,3 +10,11 @@ export function cn(...inputs: ClassValue[]) {
 export function toUrl(href: NonNullable<InertiaLinkProps['href']>) {
     return typeof href === 'string' ? href : href?.url;
 }
+
+export function formatDate(value: string | null | undefined): string {
+    if (!value) return '';
+    const iso = value.length >= 10 ? value.slice(0, 10) : value;
+    const [year, month, day] = iso.split('-');
+    if (!year || !month || !day) return value;
+    return `${month}/${day}/${year}`;
+}

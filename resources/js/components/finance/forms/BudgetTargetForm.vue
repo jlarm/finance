@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Form, Link } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import FormSelect from '@/components/finance/FormSelect.vue';
 import type { RouteDefinition } from '@/wayfinder';
 
 type Category = { id: number; name: string };
@@ -14,7 +16,7 @@ type BudgetTarget = {
     amount: number | string;
 };
 
-defineProps<{
+const props = defineProps<{
     action: RouteDefinition<'post' | 'put' | 'patch'>;
     categories: Category[];
     target?: Partial<BudgetTarget>;
@@ -22,6 +24,10 @@ defineProps<{
     submitLabel?: string;
     lockCategory?: boolean;
 }>();
+
+const categoryOptions = computed(() =>
+    props.categories.map((cat) => ({ value: cat.id, label: cat.name })),
+);
 </script>
 
 <template>
@@ -32,19 +38,15 @@ defineProps<{
     >
         <div class="grid gap-2">
             <Label for="expense_category_id">Category</Label>
-            <select
+            <FormSelect
                 id="expense_category_id"
                 name="expense_category_id"
-                class="h-10 rounded-md border bg-background px-3 text-sm disabled:opacity-60"
-                :value="target?.expense_category_id"
+                :options="categoryOptions"
+                :default-value="target?.expense_category_id ?? null"
                 :disabled="lockCategory"
+                placeholder="Choose a category"
                 required
-            >
-                <option value="">Choose a category</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                    {{ cat.name }}
-                </option>
-            </select>
+            />
             <InputError :message="errors.expense_category_id" />
         </div>
 
@@ -54,7 +56,7 @@ defineProps<{
                 id="period_month"
                 name="period_month"
                 type="month"
-                :value="target?.period_month"
+                :default-value="target?.period_month"
                 required
             />
             <InputError :message="errors.period_month" />
@@ -69,7 +71,7 @@ defineProps<{
                 step="0.01"
                 min="0.01"
                 inputmode="decimal"
-                :value="target?.amount"
+                :default-value="target?.amount"
                 required
             />
             <InputError :message="errors.amount" />

@@ -4,6 +4,8 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import FormSelect from '@/components/finance/FormSelect.vue';
+import FormDatePicker from '@/components/finance/FormDatePicker.vue';
 import type { RouteDefinition } from '@/wayfinder';
 
 type IncomeSource = {
@@ -14,12 +16,23 @@ type IncomeSource = {
     notes?: string | null;
 };
 
-defineProps<{
+const props = defineProps<{
     action: RouteDefinition<'post' | 'put' | 'patch'>;
     incomeSource?: Partial<IncomeSource>;
     cancelHref?: string;
     submitLabel?: string;
 }>();
+
+const frequencyOptions: { value: IncomeSource['frequency']; label: string }[] = [
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'semimonthly', label: 'Twice a month' },
+    { value: 'biweekly', label: 'Every 2 weeks' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'annual', label: 'Annual' },
+    { value: 'one_time', label: 'One-time' },
+];
+
+const selectedFrequency = props.incomeSource?.frequency ?? 'monthly';
 </script>
 
 <template>
@@ -35,7 +48,7 @@ defineProps<{
                 name="name"
                 type="text"
                 maxlength="120"
-                :value="incomeSource?.name"
+                :default-value="incomeSource?.name"
                 placeholder="Day job, side gig, etc."
                 required
             />
@@ -51,7 +64,7 @@ defineProps<{
                 step="0.01"
                 min="0.01"
                 inputmode="decimal"
-                :value="incomeSource?.amount"
+                :default-value="incomeSource?.amount"
                 required
             />
             <InputError :message="errors.amount" />
@@ -59,30 +72,23 @@ defineProps<{
 
         <div class="grid gap-2">
             <Label for="frequency">Frequency</Label>
-            <select
+            <FormSelect
                 id="frequency"
                 name="frequency"
-                class="h-10 rounded-md border bg-background px-3 text-sm"
-                :value="incomeSource?.frequency ?? 'monthly'"
+                :options="frequencyOptions"
+                :default-value="selectedFrequency"
                 required
-            >
-                <option value="monthly">Monthly</option>
-                <option value="semimonthly">Twice a month</option>
-                <option value="biweekly">Every 2 weeks</option>
-                <option value="weekly">Weekly</option>
-                <option value="annual">Annual</option>
-                <option value="one_time">One-time</option>
-            </select>
+            />
             <InputError :message="errors.frequency" />
         </div>
 
         <div class="grid gap-2">
             <Label for="next_expected_on">Next expected on</Label>
-            <Input
+            <FormDatePicker
                 id="next_expected_on"
                 name="next_expected_on"
-                type="date"
-                :value="incomeSource?.next_expected_on ?? ''"
+                :default-value="incomeSource?.next_expected_on"
+                placeholder="Pick next expected date"
             />
             <InputError :message="errors.next_expected_on" />
         </div>
@@ -94,8 +100,7 @@ defineProps<{
                 name="notes"
                 rows="3"
                 class="rounded-md border bg-background px-3 py-2 text-sm"
-                :value="incomeSource?.notes ?? ''"
-            ></textarea>
+            >{{ incomeSource?.notes ?? '' }}</textarea>
             <InputError :message="errors.notes" />
         </div>
 

@@ -10,6 +10,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { create, edit, index, show } from '@/routes/savings-goals';
+import { formatDate } from '@/lib/utils';
 
 type Goal = {
     id: number;
@@ -72,7 +73,7 @@ const money = (v: number) =>
                         <div>
                             <CardTitle>{{ goal.name }}</CardTitle>
                             <CardDescription v-if="goal.target_date">
-                                By {{ goal.target_date }}
+                                By {{ formatDate(goal.target_date) }}
                             </CardDescription>
                         </div>
                         <span

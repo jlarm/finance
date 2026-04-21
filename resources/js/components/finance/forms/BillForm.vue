@@ -4,6 +4,8 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import FormSelect from '@/components/finance/FormSelect.vue';
+import FormDatePicker from '@/components/finance/FormDatePicker.vue';
 import type { RouteDefinition } from '@/wayfinder';
 
 type Bill = {
@@ -15,12 +17,23 @@ type Bill = {
     notes?: string | null;
 };
 
-defineProps<{
+const props = defineProps<{
     action: RouteDefinition<'post' | 'put' | 'patch'>;
     bill?: Partial<Bill>;
     cancelHref?: string;
     submitLabel?: string;
 }>();
+
+const frequencyOptions: { value: Bill['frequency']; label: string }[] = [
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'biweekly', label: 'Every 2 weeks' },
+    { value: 'quarterly', label: 'Quarterly' },
+    { value: 'annual', label: 'Annual' },
+    { value: 'custom', label: 'Custom' },
+];
+
+const selectedFrequency = props.bill?.frequency ?? 'monthly';
 </script>
 
 <template>
@@ -36,7 +49,7 @@ defineProps<{
                 name="name"
                 type="text"
                 maxlength="120"
-                :value="bill?.name"
+                :default-value="bill?.name"
                 required
             />
             <InputError :message="errors.name" />
@@ -51,7 +64,7 @@ defineProps<{
                 step="0.01"
                 min="0.01"
                 inputmode="decimal"
-                :value="bill?.amount"
+                :default-value="bill?.amount"
                 required
             />
             <InputError :message="errors.amount" />
@@ -59,30 +72,23 @@ defineProps<{
 
         <div class="grid gap-2">
             <Label for="frequency">Frequency</Label>
-            <select
+            <FormSelect
                 id="frequency"
                 name="frequency"
-                class="h-10 rounded-md border bg-background px-3 text-sm"
-                :value="bill?.frequency ?? 'monthly'"
+                :options="frequencyOptions"
+                :default-value="selectedFrequency"
                 required
-            >
-                <option value="monthly">Monthly</option>
-                <option value="weekly">Weekly</option>
-                <option value="biweekly">Every 2 weeks</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annual">Annual</option>
-                <option value="custom">Custom</option>
-            </select>
+            />
             <InputError :message="errors.frequency" />
         </div>
 
         <div class="grid gap-2">
             <Label for="next_due_on">Next due</Label>
-            <Input
+            <FormDatePicker
                 id="next_due_on"
                 name="next_due_on"
-                type="date"
-                :value="bill?.next_due_on"
+                :default-value="bill?.next_due_on"
+                placeholder="Pick a due date"
                 required
             />
             <InputError :message="errors.next_due_on" />
@@ -108,8 +114,7 @@ defineProps<{
                 name="notes"
                 rows="3"
                 class="rounded-md border bg-background px-3 py-2 text-sm"
-                :value="bill?.notes ?? ''"
-            ></textarea>
+            >{{ bill?.notes ?? '' }}</textarea>
             <InputError :message="errors.notes" />
         </div>
 

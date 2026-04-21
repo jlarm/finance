@@ -28,6 +28,7 @@ class ExpenseController extends Controller
             ->when($filters['category'] ?? null, fn ($q, $id) => $q->where('expense_category_id', $id))
             ->when($filters['search'] ?? null, fn ($q, $s) => $q->where('description', 'like', "%{$s}%"))
             ->orderByDesc('occurred_on')
+            ->orderByDesc('created_at')
             ->paginate(25)
             ->withQueryString();
 

@@ -4,6 +4,7 @@ import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { create, edit, index } from '@/routes/bills';
+import { formatDate } from '@/lib/utils';
 
 type Bill = {
     id: number;
@@ -89,7 +90,7 @@ const money = (v: number) =>
                             >
                                 {{ bill.frequency }}
                             </td>
-                            <td class="px-4 py-3">{{ bill.next_due_on }}</td>
+                            <td class="px-4 py-3">{{ formatDate(bill.next_due_on) }}</td>
                             <td class="px-4 py-3 text-right tabular-nums">
                                 {{ money(bill.amount) }}
                             </td>

@@ -4,6 +4,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import FormSelect from '@/components/finance/FormSelect.vue';
 import type { RouteDefinition } from '@/wayfinder';
 
 type Debt = {
@@ -17,12 +18,23 @@ type Debt = {
     notes?: string | null;
 };
 
-defineProps<{
+const props = defineProps<{
     action: RouteDefinition<'post' | 'put' | 'patch'>;
     debt?: Partial<Debt>;
     cancelHref?: string;
     submitLabel?: string;
 }>();
+
+const kindOptions: { value: Debt['kind']; label: string }[] = [
+    { value: 'credit_card', label: 'Credit card' },
+    { value: 'loan', label: 'Loan' },
+    { value: 'student_loan', label: 'Student loan' },
+    { value: 'medical', label: 'Medical' },
+    { value: 'personal', label: 'Personal' },
+    { value: 'other', label: 'Other' },
+];
+
+const selectedKind = props.debt?.kind ?? 'credit_card';
 </script>
 
 <template>
@@ -38,7 +50,7 @@ defineProps<{
                 name="name"
                 type="text"
                 maxlength="120"
-                :value="debt?.name"
+                :default-value="debt?.name"
                 required
             />
             <InputError :message="errors.name" />
@@ -46,20 +58,13 @@ defineProps<{
 
         <div class="grid gap-2">
             <Label for="kind">Type</Label>
-            <select
+            <FormSelect
                 id="kind"
                 name="kind"
-                class="h-10 rounded-md border bg-background px-3 text-sm"
-                :value="debt?.kind ?? 'credit_card'"
+                :options="kindOptions"
+                :default-value="selectedKind"
                 required
-            >
-                <option value="credit_card">Credit card</option>
-                <option value="loan">Loan</option>
-                <option value="student_loan">Student loan</option>
-                <option value="medical">Medical</option>
-                <option value="personal">Personal</option>
-                <option value="other">Other</option>
-            </select>
+            />
             <InputError :message="errors.kind" />
         </div>
 
@@ -73,7 +78,7 @@ defineProps<{
                     step="0.01"
                     min="0"
                     inputmode="decimal"
-                    :value="debt?.balance"
+                    :default-value="debt?.balance"
                     required
                 />
                 <InputError :message="errors.balance" />
@@ -87,7 +92,7 @@ defineProps<{
                     step="0.01"
                     min="0"
                     inputmode="decimal"
-                    :value="debt?.original_balance ?? ''"
+                    :default-value="debt?.original_balance ?? ''"
                 />
                 <InputError :message="errors.original_balance" />
             </div>
@@ -104,7 +109,7 @@ defineProps<{
                     min="0"
                     max="100"
                     inputmode="decimal"
-                    :value="debt?.apr ?? ''"
+                    :default-value="debt?.apr ?? ''"
                 />
                 <InputError :message="errors.apr" />
             </div>
@@ -117,7 +122,7 @@ defineProps<{
                     step="0.01"
                     min="0"
                     inputmode="decimal"
-                    :value="debt?.minimum_payment ?? ''"
+                    :default-value="debt?.minimum_payment ?? ''"
                 />
                 <InputError :message="errors.minimum_payment" />
             </div>
@@ -131,7 +136,7 @@ defineProps<{
                 type="number"
                 min="1"
                 max="31"
-                :value="debt?.due_day ?? ''"
+                :default-value="debt?.due_day ?? ''"
             />
             <InputError :message="errors.due_day" />
         </div>
@@ -143,8 +148,7 @@ defineProps<{
                 name="notes"
                 rows="3"
                 class="rounded-md border bg-background px-3 py-2 text-sm"
-                :value="debt?.notes ?? ''"
-            ></textarea>
+            >{{ debt?.notes ?? '' }}</textarea>
             <InputError :message="errors.notes" />
         </div>
 

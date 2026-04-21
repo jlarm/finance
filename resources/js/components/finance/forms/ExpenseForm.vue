@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Form, Link } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import type { RouteDefinition } from '@/wayfinder';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import FormSelect from '@/components/finance/FormSelect.vue';
+import FormDatePicker from '@/components/finance/FormDatePicker.vue';
 
 type Category = { id: number; name: string };
 
@@ -16,19 +19,29 @@ type Expense = {
     notes?: string | null;
 };
 
-defineProps<{
+const props = defineProps<{
     action: RouteDefinition<'post' | 'put' | 'patch'>;
     categories: Category[];
     expense?: Partial<Expense>;
     cancelHref?: string;
     submitLabel?: string;
 }>();
+
+const emit = defineEmits<{
+    success: [];
+    cancel: [];
+}>();
+
+const categoryOptions = computed(() =>
+    props.categories.map((cat) => ({ value: cat.id, label: cat.name })),
+);
 </script>
 
 <template>
     <Form
         :action="action"
         class="flex flex-col gap-4"
+        @success="emit('success')"
         v-slot="{ errors, processing }"
     >
         <div class="grid gap-2">
@@ -40,7 +53,7 @@ defineProps<{
                 step="0.01"
                 min="0.01"
                 inputmode="decimal"
-                :value="expense?.amount"
+                :default-value="expense?.amount"
                 required
             />
             <InputError :message="errors.amount" />
@@ -48,28 +61,24 @@ defineProps<{
 
         <div class="grid gap-2">
             <Label for="expense_category_id">Category</Label>
-            <select
+            <FormSelect
                 id="expense_category_id"
                 name="expense_category_id"
-                class="h-10 rounded-md border bg-background px-3 text-sm"
-                :value="expense?.expense_category_id"
+                :options="categoryOptions"
+                :default-value="expense?.expense_category_id ?? null"
+                placeholder="Choose a category"
                 required
-            >
-                <option value="">Choose a category</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                    {{ cat.name }}
-                </option>
-            </select>
+            />
             <InputError :message="errors.expense_category_id" />
         </div>
 
         <div class="grid gap-2">
             <Label for="occurred_on">Date</Label>
-            <Input
+            <FormDatePicker
                 id="occurred_on"
                 name="occurred_on"
-                type="date"
-                :value="expense?.occurred_on"
+                :default-value="expense?.occurred_on"
+                placeholder="Pick a date"
                 required
             />
             <InputError :message="errors.occurred_on" />
@@ -82,7 +91,7 @@ defineProps<{
                 name="description"
                 type="text"
                 maxlength="160"
-                :value="expense?.description"
+                :default-value="expense?.description"
                 required
             />
             <InputError :message="errors.description" />
@@ -95,14 +104,25 @@ defineProps<{
                 name="notes"
                 rows="3"
                 class="rounded-md border bg-background px-3 py-2 text-sm"
-                :value="expense?.notes ?? ''"
-            ></textarea>
+            >{{ expense?.notes ?? '' }}</textarea>
             <InputError :message="errors.notes" />
         </div>
 
         <div class="flex justify-end gap-2">
-            <Button v-if="cancelHref" variant="ghost" as-child>
+            <Button
+                v-if="cancelHref"
+                variant="ghost"
+                as-child
+            >
                 <Link :href="cancelHref">Cancel</Link>
+            </Button>
+            <Button
+                v-else
+                type="button"
+                variant="ghost"
+                @click="emit('cancel')"
+            >
+                Cancel
             </Button>
             <Button type="submit" :disabled="processing">
                 {{ submitLabel ?? 'Save expense' }}

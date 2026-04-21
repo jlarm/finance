@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { dashboard, planner } from '@/routes';
 import { create as createExpense } from '@/routes/expenses';
+import { formatDate } from '@/lib/utils';
 
 type Summary = {
     expenses_this_month: number;
@@ -117,7 +118,7 @@ const money = (v: number) =>
                         >
                             <span>{{ bill.name }}</span>
                             <span class="text-muted-foreground">
-                                {{ money(bill.amount) }} · {{ bill.next_due_on }}
+                                {{ money(bill.amount) }} · {{ formatDate(bill.next_due_on) }}
                             </span>
                         </li>
                     </ul>
