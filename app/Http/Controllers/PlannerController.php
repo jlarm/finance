@@ -30,7 +30,7 @@ class PlannerController extends Controller
             'avalanche' => $debts->sortByDesc('apr')->values(),
         };
 
-        return Inertia::render('debts/Planner', [
+        return Inertia::render('planner/Index', [
             'strategy' => $strategy,
             'extraPayment' => $extraPayment,
             'debts' => $ordered,
