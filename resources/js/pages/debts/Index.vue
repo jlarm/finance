@@ -164,7 +164,10 @@ const handleDelete = () => {
                         </span>
                     </div>
                     <div
-                        v-if="debt.progress_percentage !== null"
+                        v-if="
+                            debt.progress_percentage !== null &&
+                            debt.progress_percentage !== undefined
+                        "
                         class="space-y-1"
                     >
                         <div class="flex justify-between text-xs text-muted-foreground">

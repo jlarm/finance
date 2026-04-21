@@ -27,6 +27,9 @@ class Debt extends Model
     /** @use HasFactory<DebtFactory> */
     use HasFactory;
 
+    /** @var list<string> */
+    protected $appends = ['progress_percentage'];
+
     protected function casts(): array
     {
         return [
