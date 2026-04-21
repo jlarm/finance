@@ -39,6 +39,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('spending', [ReportController::class, 'spending'])->name('spending');
+        Route::get('categories', [ReportController::class, 'categories'])->name('categories');
+        Route::get('bills', [ReportController::class, 'bills'])->name('bills');
+        Route::get('debts', [ReportController::class, 'debts'])->name('debts');
+        Route::get('savings', [ReportController::class, 'savings'])->name('savings');
         Route::get('cash-flow', [ReportController::class, 'cashFlow'])->name('cash-flow');
     });
 
