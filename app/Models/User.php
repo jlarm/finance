@@ -7,6 +7,8 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -30,5 +32,50 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function expenseCategories(): HasMany
+    {
+        return $this->hasMany(ExpenseCategory::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    public function bills(): HasMany
+    {
+        return $this->hasMany(Bill::class);
+    }
+
+    public function debts(): HasMany
+    {
+        return $this->hasMany(Debt::class);
+    }
+
+    public function incomeSources(): HasMany
+    {
+        return $this->hasMany(IncomeSource::class);
+    }
+
+    public function savingsGoals(): HasMany
+    {
+        return $this->hasMany(SavingsGoal::class);
+    }
+
+    public function aiInsights(): HasMany
+    {
+        return $this->hasMany(AiInsight::class);
+    }
+
+    public function budgetTargets(): HasMany
+    {
+        return $this->hasMany(BudgetTarget::class);
+    }
+
+    public function financeSettings(): HasOne
+    {
+        return $this->hasOne(UserFinanceSetting::class);
     }
 }
