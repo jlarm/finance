@@ -25,11 +25,13 @@ const props = defineProps<{
     expense?: Partial<Expense>;
     cancelHref?: string;
     submitLabel?: string;
+    deletable?: boolean;
 }>();
 
 const emit = defineEmits<{
     success: [];
     cancel: [];
+    delete: [];
 }>();
 
 const categoryOptions = computed(() =>
@@ -108,25 +110,38 @@ const categoryOptions = computed(() =>
             <InputError :message="errors.notes" />
         </div>
 
-        <div class="flex justify-end gap-2">
+        <div class="flex items-center justify-between gap-2">
             <Button
-                v-if="cancelHref"
-                variant="ghost"
-                as-child
-            >
-                <Link :href="cancelHref">Cancel</Link>
-            </Button>
-            <Button
-                v-else
+                v-if="deletable"
                 type="button"
                 variant="ghost"
-                @click="emit('cancel')"
+                class="text-destructive hover:text-destructive"
+                :disabled="processing"
+                @click="emit('delete')"
             >
-                Cancel
+                Delete
             </Button>
-            <Button type="submit" :disabled="processing">
-                {{ submitLabel ?? 'Save expense' }}
-            </Button>
+            <span v-else></span>
+            <div class="flex gap-2">
+                <Button
+                    v-if="cancelHref"
+                    variant="ghost"
+                    as-child
+                >
+                    <Link :href="cancelHref">Cancel</Link>
+                </Button>
+                <Button
+                    v-else
+                    type="button"
+                    variant="ghost"
+                    @click="emit('cancel')"
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" :disabled="processing">
+                    {{ submitLabel ?? 'Save expense' }}
+                </Button>
+            </div>
         </div>
     </Form>
 </template>

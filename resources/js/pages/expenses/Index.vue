@@ -116,6 +116,18 @@ const handleSuccess = () => {
     dialogOpen.value = false;
     editing.value = null;
 };
+
+const handleDelete = () => {
+    if (!editing.value) return;
+    if (!confirm('Delete this expense? This cannot be undone.')) return;
+    router.delete(ExpenseController.destroy({ expense: editing.value.id }).url, {
+        preserveScroll: true,
+        onSuccess: () => {
+            dialogOpen.value = false;
+            editing.value = null;
+        },
+    });
+};
 </script>
 
 <template>
@@ -285,8 +297,10 @@ const handleSuccess = () => {
                     :categories="categories"
                     :expense="editing ?? undefined"
                     :submit-label="editing ? 'Save changes' : 'Save expense'"
+                    :deletable="!!editing"
                     @success="handleSuccess"
                     @cancel="dialogOpen = false"
+                    @delete="handleDelete"
                 />
             </DialogContent>
         </Dialog>
