@@ -18,16 +18,11 @@ class BillController extends Controller
             ->with('category')
             ->active()
             ->orderBy('next_due_on')
-            ->get();
+            ->paginate(25)
+            ->withQueryString();
 
         return Inertia::render('bills/Index', [
             'bills' => $bills,
-        ]);
-    }
-
-    public function create(Request $request): Response
-    {
-        return Inertia::render('bills/Create', [
             'categories' => $request->user()->expenseCategories()->active()->orderBy('name')->get(),
         ]);
     }
@@ -39,16 +34,6 @@ class BillController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Bill added.')]);
 
         return to_route('bills.index');
-    }
-
-    public function edit(Request $request, Bill $bill): Response
-    {
-        abort_if($bill->user_id !== $request->user()->id, 403);
-
-        return Inertia::render('bills/Edit', [
-            'bill' => $bill,
-            'categories' => $request->user()->expenseCategories()->active()->orderBy('name')->get(),
-        ]);
     }
 
     public function update(UpdateBillRequest $request, Bill $bill): RedirectResponse

@@ -23,7 +23,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::resource('expenses', ExpenseController::class)->except('show');
-    Route::resource('bills', BillController::class)->except('show');
+    Route::resource('bills', BillController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('debts', DebtController::class);
     Route::resource('income-sources', IncomeSourceController::class)->except('show');
     Route::resource('savings-goals', SavingsGoalController::class);
