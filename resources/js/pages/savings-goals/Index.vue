@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +10,16 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { create, edit, index, show } from '@/routes/savings-goals';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import SavingsGoalForm from '@/components/finance/forms/SavingsGoalForm.vue';
+import SavingsGoalController from '@/actions/App/Http/Controllers/SavingsGoalController';
+import { index } from '@/routes/savings-goals';
 import { formatDate } from '@/lib/utils';
 
 type Goal = {
@@ -20,6 +30,7 @@ type Goal = {
     target_date: string | null;
     is_achieved: boolean;
     progress_percentage: number;
+    notes: string | null;
 };
 
 defineProps<{ goals: Goal[] }>();
@@ -35,6 +46,39 @@ const money = (v: number) =>
         style: 'currency',
         currency: 'USD',
     }).format(v ?? 0);
+
+const dialogOpen = ref(false);
+const editing = ref<Goal | null>(null);
+
+const openCreate = () => {
+    editing.value = null;
+    dialogOpen.value = true;
+};
+
+const openEdit = (goal: Goal) => {
+    editing.value = goal;
+    dialogOpen.value = true;
+};
+
+const handleSuccess = () => {
+    dialogOpen.value = false;
+    editing.value = null;
+};
+
+const handleDelete = () => {
+    if (!editing.value) return;
+    if (!confirm('Delete this goal? This cannot be undone.')) return;
+    router.delete(
+        SavingsGoalController.destroy({ savings_goal: editing.value.id }).url,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                dialogOpen.value = false;
+                editing.value = null;
+            },
+        },
+    );
+};
 </script>
 
 <template>
@@ -46,9 +90,7 @@ const money = (v: number) =>
                 title="Savings goals"
                 description="Something you're working toward."
             />
-            <Button as-child>
-                <Link :href="create()">New goal</Link>
-            </Button>
+            <Button @click="openCreate">New goal</Button>
         </div>
 
         <div v-if="!goals.length">
@@ -59,9 +101,7 @@ const money = (v: number) =>
                         Name something worth saving for — a trip, a cushion, a
                         move. We'll track your pace.
                     </p>
-                    <Button as-child class="mt-2">
-                        <Link :href="create()">New goal</Link>
-                    </Button>
+                    <Button class="mt-2" @click="openCreate">New goal</Button>
                 </CardContent>
             </Card>
         </div>
@@ -99,22 +139,52 @@ const money = (v: number) =>
                             :style="{ width: `${goal.progress_percentage}%` }"
                         />
                     </div>
-                    <div class="flex justify-end gap-3 text-sm">
-                        <Link
-                            :href="show({ savings_goal: goal.id })"
+                    <div class="flex justify-end text-sm">
+                        <button
+                            type="button"
                             class="text-muted-foreground underline-offset-4 hover:underline"
-                        >
-                            View
-                        </Link>
-                        <Link
-                            :href="edit({ savings_goal: goal.id })"
-                            class="text-muted-foreground underline-offset-4 hover:underline"
+                            @click="openEdit(goal)"
                         >
                             Edit
-                        </Link>
+                        </button>
                     </div>
                 </CardContent>
             </Card>
         </div>
+
+        <Dialog v-model:open="dialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>
+                        {{ editing ? 'Edit goal' : 'New goal' }}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {{
+                            editing
+                                ? 'Update this savings goal.'
+                                : 'Name something worth saving for.'
+                        }}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <SavingsGoalForm
+                    v-if="dialogOpen"
+                    :key="editing?.id ?? 'new'"
+                    :action="
+                        editing
+                            ? SavingsGoalController.update({
+                                  savings_goal: editing.id,
+                              })
+                            : SavingsGoalController.store()
+                    "
+                    :goal="editing ?? undefined"
+                    :submit-label="editing ? 'Save changes' : 'Save goal'"
+                    :deletable="!!editing"
+                    @success="handleSuccess"
+                    @cancel="dialogOpen = false"
+                    @delete="handleDelete"
+                />
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

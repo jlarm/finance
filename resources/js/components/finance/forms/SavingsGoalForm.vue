@@ -20,6 +20,13 @@ defineProps<{
     goal?: Partial<SavingsGoal>;
     cancelHref?: string;
     submitLabel?: string;
+    deletable?: boolean;
+}>();
+
+const emit = defineEmits<{
+    success: [];
+    cancel: [];
+    delete: [];
 }>();
 </script>
 
@@ -27,6 +34,7 @@ defineProps<{
     <Form
         :action="action"
         class="flex flex-col gap-4"
+        @success="emit('success')"
         v-slot="{ errors, processing }"
     >
         <div class="grid gap-2">
@@ -95,13 +103,34 @@ defineProps<{
             <InputError :message="errors.notes" />
         </div>
 
-        <div class="flex justify-end gap-2">
-            <Button v-if="cancelHref" variant="ghost" as-child>
-                <Link :href="cancelHref">Cancel</Link>
+        <div class="flex items-center justify-between gap-2">
+            <Button
+                v-if="deletable"
+                type="button"
+                variant="ghost"
+                class="text-destructive hover:text-destructive"
+                :disabled="processing"
+                @click="emit('delete')"
+            >
+                Delete
             </Button>
-            <Button type="submit" :disabled="processing">
-                {{ submitLabel ?? 'Save goal' }}
-            </Button>
+            <span v-else></span>
+            <div class="flex gap-2">
+                <Button v-if="cancelHref" variant="ghost" as-child>
+                    <Link :href="cancelHref">Cancel</Link>
+                </Button>
+                <Button
+                    v-else
+                    type="button"
+                    variant="ghost"
+                    @click="emit('cancel')"
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" :disabled="processing">
+                    {{ submitLabel ?? 'Save goal' }}
+                </Button>
+            </div>
         </div>
     </Form>
 </template>

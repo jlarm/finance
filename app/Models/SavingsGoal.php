@@ -24,6 +24,9 @@ class SavingsGoal extends Model
     /** @use HasFactory<SavingsGoalFactory> */
     use HasFactory;
 
+    /** @var list<string> */
+    protected $appends = ['progress_percentage'];
+
     protected function casts(): array
     {
         return [

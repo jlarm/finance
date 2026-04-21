@@ -24,20 +24,6 @@ class SavingsGoalController extends Controller
         ]);
     }
 
-    public function show(Request $request, SavingsGoal $savingsGoal): Response
-    {
-        abort_if($savingsGoal->user_id !== $request->user()->id, 403);
-
-        return Inertia::render('savings-goals/Show', [
-            'goal' => $savingsGoal,
-        ]);
-    }
-
-    public function create(): Response
-    {
-        return Inertia::render('savings-goals/Create');
-    }
-
     public function store(StoreSavingsGoalRequest $request): RedirectResponse
     {
         $request->user()->savingsGoals()->create($request->validated());
@@ -45,15 +31,6 @@ class SavingsGoalController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Savings goal created.')]);
 
         return to_route('savings-goals.index');
-    }
-
-    public function edit(Request $request, SavingsGoal $savingsGoal): Response
-    {
-        abort_if($savingsGoal->user_id !== $request->user()->id, 403);
-
-        return Inertia::render('savings-goals/Edit', [
-            'goal' => $savingsGoal,
-        ]);
     }
 
     public function update(UpdateSavingsGoalRequest $request, SavingsGoal $savingsGoal): RedirectResponse
