@@ -4,41 +4,36 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import FormSelect from '@/components/finance/FormSelect.vue';
 import FormDatePicker from '@/components/finance/FormDatePicker.vue';
 import type { RouteDefinition } from '@/wayfinder';
 
 type IncomeSource = {
     name: string;
     amount: number | string;
-    frequency: 'monthly' | 'weekly' | 'biweekly' | 'semimonthly' | 'annual' | 'one_time';
-    next_expected_on?: string | null;
+    received_on: string;
     notes?: string | null;
 };
 
-const props = defineProps<{
+defineProps<{
     action: RouteDefinition<'post' | 'put' | 'patch'>;
     incomeSource?: Partial<IncomeSource>;
     cancelHref?: string;
     submitLabel?: string;
+    deletable?: boolean;
 }>();
 
-const frequencyOptions: { value: IncomeSource['frequency']; label: string }[] = [
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'semimonthly', label: 'Twice a month' },
-    { value: 'biweekly', label: 'Every 2 weeks' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'annual', label: 'Annual' },
-    { value: 'one_time', label: 'One-time' },
-];
-
-const selectedFrequency = props.incomeSource?.frequency ?? 'monthly';
+const emit = defineEmits<{
+    success: [];
+    cancel: [];
+    delete: [];
+}>();
 </script>
 
 <template>
     <Form
         :action="action"
         class="flex flex-col gap-4"
+        @success="emit('success')"
         v-slot="{ errors, processing }"
     >
         <div class="grid gap-2">
@@ -47,7 +42,7 @@ const selectedFrequency = props.incomeSource?.frequency ?? 'monthly';
                 id="name"
                 name="name"
                 type="text"
-                maxlength="120"
+                maxlength="160"
                 :default-value="incomeSource?.name"
                 placeholder="Day job, side gig, etc."
                 required
@@ -71,26 +66,15 @@ const selectedFrequency = props.incomeSource?.frequency ?? 'monthly';
         </div>
 
         <div class="grid gap-2">
-            <Label for="frequency">Frequency</Label>
-            <FormSelect
-                id="frequency"
-                name="frequency"
-                :options="frequencyOptions"
-                :default-value="selectedFrequency"
+            <Label for="received_on">Date received</Label>
+            <FormDatePicker
+                id="received_on"
+                name="received_on"
+                :default-value="incomeSource?.received_on"
+                placeholder="Pick a date"
                 required
             />
-            <InputError :message="errors.frequency" />
-        </div>
-
-        <div class="grid gap-2">
-            <Label for="next_expected_on">Next expected on</Label>
-            <FormDatePicker
-                id="next_expected_on"
-                name="next_expected_on"
-                :default-value="incomeSource?.next_expected_on"
-                placeholder="Pick next expected date"
-            />
-            <InputError :message="errors.next_expected_on" />
+            <InputError :message="errors.received_on" />
         </div>
 
         <div class="grid gap-2">
@@ -104,13 +88,34 @@ const selectedFrequency = props.incomeSource?.frequency ?? 'monthly';
             <InputError :message="errors.notes" />
         </div>
 
-        <div class="flex justify-end gap-2">
-            <Button v-if="cancelHref" variant="ghost" as-child>
-                <Link :href="cancelHref">Cancel</Link>
+        <div class="flex items-center justify-between gap-2">
+            <Button
+                v-if="deletable"
+                type="button"
+                variant="ghost"
+                class="text-destructive hover:text-destructive"
+                :disabled="processing"
+                @click="emit('delete')"
+            >
+                Delete
             </Button>
-            <Button type="submit" :disabled="processing">
-                {{ submitLabel ?? 'Save income source' }}
-            </Button>
+            <span v-else></span>
+            <div class="flex gap-2">
+                <Button v-if="cancelHref" variant="ghost" as-child>
+                    <Link :href="cancelHref">Cancel</Link>
+                </Button>
+                <Button
+                    v-else
+                    type="button"
+                    variant="ghost"
+                    @click="emit('cancel')"
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" :disabled="processing">
+                    {{ submitLabel ?? 'Save income' }}
+                </Button>
+            </div>
         </div>
     </Form>
 </template>

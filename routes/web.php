@@ -27,7 +27,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('debts', DebtController::class)
         ->only(['index', 'store', 'update', 'destroy']);
-    Route::resource('income-sources', IncomeSourceController::class)->except('show');
+    Route::resource('income-sources', IncomeSourceController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('savings-goals', SavingsGoalController::class);
 
     Route::resource('budget-targets', BudgetTargetController::class)

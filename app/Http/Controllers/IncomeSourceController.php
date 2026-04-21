@@ -32,11 +32,6 @@ class IncomeSourceController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        return Inertia::render('income-sources/Create');
-    }
-
     public function store(StoreIncomeSourceRequest $request): RedirectResponse
     {
         $request->user()->incomeSources()->create($request->validated());
@@ -44,15 +39,6 @@ class IncomeSourceController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Income added.')]);
 
         return to_route('income-sources.index');
-    }
-
-    public function edit(Request $request, IncomeSource $incomeSource): Response
-    {
-        abort_if($incomeSource->user_id !== $request->user()->id, 403);
-
-        return Inertia::render('income-sources/Edit', [
-            'incomeSource' => $incomeSource,
-        ]);
     }
 
     public function update(UpdateIncomeSourceRequest $request, IncomeSource $incomeSource): RedirectResponse
