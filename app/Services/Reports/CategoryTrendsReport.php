@@ -3,7 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\User;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -94,14 +94,14 @@ class CategoryTrendsReport
     /**
      * @return array<int, string>
      */
-    private function monthKeys(Carbon $from, Carbon $to): array
+    private function monthKeys(CarbonInterface $from, CarbonInterface $to): array
     {
         $keys = [];
         $cursor = $from->copy()->startOfMonth();
 
         while ($cursor <= $to) {
             $keys[] = $cursor->format('Y-m');
-            $cursor->addMonthNoOverflow();
+            $cursor = $cursor->addMonthNoOverflow();
         }
 
         return $keys;

@@ -4,7 +4,7 @@ namespace App\Services\Reports;
 
 use App\Models\SavingsGoal;
 use App\Models\User;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 
 /**
  * Per-goal savings progress with a "pace" heuristic.
@@ -64,7 +64,7 @@ class SavingsProgressReport
     /**
      * @return array<string, mixed>
      */
-    private function transform(SavingsGoal $goal, Carbon $today): array
+    private function transform(SavingsGoal $goal, CarbonInterface $today): array
     {
         $current = (float) $goal->current_amount;
         $target = (float) $goal->target_amount;

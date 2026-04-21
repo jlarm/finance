@@ -3,7 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\User;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -31,7 +31,7 @@ class MonthlySpendingReport
      *     }>
      * }
      */
-    public function build(User $user, ?Carbon $from = null, ?Carbon $to = null): array
+    public function build(User $user, ?CarbonInterface $from = null, ?CarbonInterface $to = null): array
     {
         $to = ($to ?? today())->copy()->endOfMonth();
         $from = ($from ?? today()->copy()->subMonths(self::DEFAULT_MONTHS - 1))->copy()->startOfMonth();
@@ -80,7 +80,7 @@ class MonthlySpendingReport
     /**
      * @return array<string, float>
      */
-    private function byMonth(User $user, Carbon $from, Carbon $to): array
+    private function byMonth(User $user, CarbonInterface $from, CarbonInterface $to): array
     {
         $expression = $this->monthExpression('occurred_on');
 
@@ -97,7 +97,7 @@ class MonthlySpendingReport
     /**
      * @return array<int, array{category_id: int, name: string, color: ?string, total: float}>
      */
-    private function byCategoryForMonth(User $user, Carbon $month): array
+    private function byCategoryForMonth(User $user, CarbonInterface $month): array
     {
         return $user->expenses()
             ->with('category:id,name,color')
