@@ -34,8 +34,8 @@ class Bill extends Model
         return [
             'amount' => 'decimal:2',
             'interval_days' => 'integer',
-            'next_due_on' => 'date',
-            'last_paid_on' => 'date',
+            'next_due_on' => 'date:Y-m-d',
+            'last_paid_on' => 'date:Y-m-d',
             'autopay_reminder' => 'boolean',
             'is_active' => 'boolean',
         ];

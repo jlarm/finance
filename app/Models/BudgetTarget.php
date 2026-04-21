@@ -18,7 +18,7 @@ class BudgetTarget extends Model
     protected function casts(): array
     {
         return [
-            'period_month' => 'date',
+            'period_month' => 'date:Y-m-d',
             'amount' => 'decimal:2',
         ];
     }

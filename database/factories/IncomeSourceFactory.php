@@ -21,4 +21,20 @@ class IncomeSourceFactory extends Factory
             'notes' => null,
         ];
     }
+
+    public function paycheck(): static
+    {
+        return $this->state(fn () => [
+            'name' => 'Acme Corp — Paycheck',
+            'amount' => fake()->randomFloat(2, 2200, 2600),
+        ]);
+    }
+
+    public function freelance(): static
+    {
+        return $this->state(fn () => [
+            'name' => 'Freelance Invoice',
+            'amount' => fake()->randomFloat(2, 400, 1800),
+        ]);
+    }
 }

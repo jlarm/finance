@@ -19,7 +19,7 @@ class IncomeSource extends Model
     {
         return [
             'amount' => 'decimal:2',
-            'received_on' => 'date',
+            'received_on' => 'date:Y-m-d',
         ];
     }
 

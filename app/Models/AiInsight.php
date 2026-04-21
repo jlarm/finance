@@ -30,7 +30,7 @@ class AiInsight extends Model
     {
         return [
             'data' => 'array',
-            'generated_for_period' => 'date',
+            'generated_for_period' => 'date:Y-m-d',
         ];
     }
 

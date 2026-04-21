@@ -11,6 +11,40 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class AiInsightFactory extends Factory
 {
+    /**
+     * Hand-written sample insights used by the demo seeder. Shape
+     * mirrors what the real generator produces so the UI renders
+     * identically whether data comes from seeds or the live pipeline.
+     *
+     * @var array<int, array{kind: string, severity: string, title: string, body: string}>
+     */
+    public const SAMPLES = [
+        [
+            'kind' => 'spending_spike',
+            'severity' => 'info',
+            'title' => 'Dining out ticked up this month',
+            'body' => 'Dining Out is trending higher than your last three months. Consider a weekly cap if you\'re targeting more savings.',
+        ],
+        [
+            'kind' => 'cashflow_warning',
+            'severity' => 'warning',
+            'title' => 'Three bills cluster the week of the 15th',
+            'body' => 'Rent, electric, and car insurance all fall in the same week. Consider moving one or setting cash aside early.',
+        ],
+        [
+            'kind' => 'goal_progress',
+            'severity' => 'info',
+            'title' => 'Emergency Fund is on pace',
+            'body' => 'At your current contribution rate, you\'ll reach the target about two months ahead of schedule. Nice.',
+        ],
+        [
+            'kind' => 'debt_progress',
+            'severity' => 'info',
+            'title' => 'Visa is your highest-APR debt',
+            'body' => 'Avalanche method suggests directing any extra payment to the Visa balance first at 22.99% APR.',
+        ],
+    ];
+
     public function definition(): array
     {
         return [
@@ -41,5 +75,10 @@ class AiInsightFactory extends Factory
     public function critical(): static
     {
         return $this->state(fn () => ['severity' => 'critical']);
+    }
+
+    public function warning(): static
+    {
+        return $this->state(fn () => ['severity' => 'warning']);
     }
 }

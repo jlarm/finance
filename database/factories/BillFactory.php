@@ -12,6 +12,23 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class BillFactory extends Factory
 {
+    /**
+     * Realistic bill archetypes used by the demo seeder.
+     *
+     * @var array<int, array{name: string, amount: float, frequency: string, category: string}>
+     */
+    public const DEFAULTS = [
+        ['name' => 'Rent', 'amount' => 1450.00, 'frequency' => 'monthly', 'category' => 'Housing'],
+        ['name' => 'Electric', 'amount' => 95.00, 'frequency' => 'monthly', 'category' => 'Utilities'],
+        ['name' => 'Internet', 'amount' => 65.00, 'frequency' => 'monthly', 'category' => 'Utilities'],
+        ['name' => 'Phone', 'amount' => 55.00, 'frequency' => 'monthly', 'category' => 'Utilities'],
+        ['name' => 'Netflix', 'amount' => 15.49, 'frequency' => 'monthly', 'category' => 'Subscriptions'],
+        ['name' => 'Spotify', 'amount' => 10.99, 'frequency' => 'monthly', 'category' => 'Subscriptions'],
+        ['name' => 'Gym', 'amount' => 32.00, 'frequency' => 'monthly', 'category' => 'Health'],
+        ['name' => 'Car Insurance', 'amount' => 420.00, 'frequency' => 'quarterly', 'category' => 'Transportation'],
+        ['name' => 'Amazon Prime', 'amount' => 139.00, 'frequency' => 'annual', 'category' => 'Subscriptions'],
+    ];
+
     public function definition(): array
     {
         return [

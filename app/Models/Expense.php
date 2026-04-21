@@ -19,7 +19,7 @@ class Expense extends Model
     {
         return [
             'amount' => 'decimal:2',
-            'occurred_on' => 'date',
+            'occurred_on' => 'date:Y-m-d',
         ];
     }
 

@@ -12,6 +12,25 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ExpenseFactory extends Factory
 {
+    /**
+     * Plausible expense descriptions by category name. The seeder picks
+     * from these to keep the demo data readable in the UI.
+     *
+     * @var array<string, array<int, string>>
+     */
+    public const DESCRIPTIONS = [
+        'Groceries' => ['Whole Foods run', 'Trader Joe\'s', 'Costco haul', 'Corner store', 'Farmers market'],
+        'Dining Out' => ['Lunch with team', 'Takeout dinner', 'Coffee shop', 'Brunch', 'Pizza night'],
+        'Transportation' => ['Gas fill-up', 'Uber ride', 'Parking', 'Transit pass', 'Oil change'],
+        'Utilities' => ['Electric bill', 'Water bill', 'Internet', 'Gas bill'],
+        'Housing' => ['Rent top-up', 'HOA fee', 'Maintenance'],
+        'Entertainment' => ['Movie tickets', 'Concert', 'Streaming rental', 'Books'],
+        'Health' => ['Pharmacy', 'Doctor visit copay', 'Gym drop-in', 'Vitamins'],
+        'Shopping' => ['Amazon order', 'Clothing', 'Home goods', 'Electronics'],
+        'Subscriptions' => ['Netflix', 'Spotify', 'Cloud storage', 'Newsletter'],
+        'Personal Care' => ['Haircut', 'Toiletries', 'Skincare'],
+    ];
+
     public function definition(): array
     {
         return [
@@ -24,5 +43,16 @@ class ExpenseFactory extends Factory
             'description' => fake()->sentence(3),
             'notes' => null,
         ];
+    }
+
+    public function forCategory(ExpenseCategory $category): static
+    {
+        return $this->state(fn () => [
+            'user_id' => $category->user_id,
+            'expense_category_id' => $category->id,
+            'description' => fake()->randomElement(
+                self::DESCRIPTIONS[$category->name] ?? [fake()->sentence(3)]
+            ),
+        ]);
     }
 }
