@@ -28,20 +28,6 @@ class DebtController extends Controller
         ]);
     }
 
-    public function show(Request $request, Debt $debt): Response
-    {
-        abort_if($debt->user_id !== $request->user()->id, 403);
-
-        return Inertia::render('debts/Show', [
-            'debt' => $debt,
-        ]);
-    }
-
-    public function create(): Response
-    {
-        return Inertia::render('debts/Create');
-    }
-
     public function store(StoreDebtRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -52,15 +38,6 @@ class DebtController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Debt added.')]);
 
         return to_route('debts.index');
-    }
-
-    public function edit(Request $request, Debt $debt): Response
-    {
-        abort_if($debt->user_id !== $request->user()->id, 403);
-
-        return Inertia::render('debts/Edit', [
-            'debt' => $debt,
-        ]);
     }
 
     public function update(UpdateDebtRequest $request, Debt $debt): RedirectResponse

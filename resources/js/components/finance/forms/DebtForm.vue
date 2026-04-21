@@ -9,7 +9,7 @@ import type { RouteDefinition } from '@/wayfinder';
 
 type Debt = {
     name: string;
-    kind: 'credit_card' | 'loan' | 'student_loan' | 'medical' | 'personal' | 'other';
+    type: 'credit_card' | 'student' | 'auto' | 'mortgage' | 'personal' | 'medical' | 'other';
     balance: number | string;
     original_balance?: number | string | null;
     apr?: number | string | null;
@@ -23,24 +23,33 @@ const props = defineProps<{
     debt?: Partial<Debt>;
     cancelHref?: string;
     submitLabel?: string;
+    deletable?: boolean;
 }>();
 
-const kindOptions: { value: Debt['kind']; label: string }[] = [
+const emit = defineEmits<{
+    success: [];
+    cancel: [];
+    delete: [];
+}>();
+
+const typeOptions: { value: Debt['type']; label: string }[] = [
     { value: 'credit_card', label: 'Credit card' },
-    { value: 'loan', label: 'Loan' },
-    { value: 'student_loan', label: 'Student loan' },
+    { value: 'student', label: 'Student loan' },
+    { value: 'auto', label: 'Auto loan' },
+    { value: 'mortgage', label: 'Mortgage' },
+    { value: 'personal', label: 'Personal loan' },
     { value: 'medical', label: 'Medical' },
-    { value: 'personal', label: 'Personal' },
     { value: 'other', label: 'Other' },
 ];
 
-const selectedKind = props.debt?.kind ?? 'credit_card';
+const selectedType = props.debt?.type ?? 'credit_card';
 </script>
 
 <template>
     <Form
         :action="action"
         class="flex flex-col gap-4"
+        @success="emit('success')"
         v-slot="{ errors, processing }"
     >
         <div class="grid gap-2">
@@ -57,15 +66,15 @@ const selectedKind = props.debt?.kind ?? 'credit_card';
         </div>
 
         <div class="grid gap-2">
-            <Label for="kind">Type</Label>
+            <Label for="type">Type</Label>
             <FormSelect
-                id="kind"
-                name="kind"
-                :options="kindOptions"
-                :default-value="selectedKind"
+                id="type"
+                name="type"
+                :options="typeOptions"
+                :default-value="selectedType"
                 required
             />
-            <InputError :message="errors.kind" />
+            <InputError :message="errors.type" />
         </div>
 
         <div class="grid gap-2 sm:grid-cols-2">
@@ -152,13 +161,34 @@ const selectedKind = props.debt?.kind ?? 'credit_card';
             <InputError :message="errors.notes" />
         </div>
 
-        <div class="flex justify-end gap-2">
-            <Button v-if="cancelHref" variant="ghost" as-child>
-                <Link :href="cancelHref">Cancel</Link>
+        <div class="flex items-center justify-between gap-2">
+            <Button
+                v-if="deletable"
+                type="button"
+                variant="ghost"
+                class="text-destructive hover:text-destructive"
+                :disabled="processing"
+                @click="emit('delete')"
+            >
+                Delete
             </Button>
-            <Button type="submit" :disabled="processing">
-                {{ submitLabel ?? 'Save debt' }}
-            </Button>
+            <span v-else></span>
+            <div class="flex gap-2">
+                <Button v-if="cancelHref" variant="ghost" as-child>
+                    <Link :href="cancelHref">Cancel</Link>
+                </Button>
+                <Button
+                    v-else
+                    type="button"
+                    variant="ghost"
+                    @click="emit('cancel')"
+                >
+                    Cancel
+                </Button>
+                <Button type="submit" :disabled="processing">
+                    {{ submitLabel ?? 'Save debt' }}
+                </Button>
+            </div>
         </div>
     </Form>
 </template>
