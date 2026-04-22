@@ -29,6 +29,7 @@ type Bill = {
     interval_days: number | null;
     next_due_on: string;
     autopay_reminder: boolean;
+    split_across_paychecks: boolean;
     notes: string | null;
     status?: string;
     debt: { id: number; name: string } | null;
@@ -83,17 +84,34 @@ const handleSuccess = () => {
 };
 
 const markPaid = (bill: Bill) => {
-    const msg = bill.debt
-        ? `Record payment of ${money(bill.amount)} for ${bill.name}? This will reduce ${bill.debt.name}'s balance.`
-        : `Record payment of ${money(bill.amount)} for ${bill.name}?`;
+    const defaultAmount = bill.split_across_paychecks
+        ? (Number(bill.amount) / 2).toFixed(2)
+        : String(bill.amount);
+    const splitNote = bill.split_across_paychecks
+        ? ' (paying half — the other half posts with the next paycheck)'
+        : '';
+    const suffix = bill.debt
+        ? ` This will reduce ${bill.debt.name}'s balance by that amount.`
+        : '';
+    const input = prompt(
+        `Amount paid for ${bill.name}?${splitNote}${suffix}`,
+        defaultAmount,
+    );
 
-    if (!confirm(msg)) {
-return;
-}
+    if (input === null) {
+        return;
+    }
+
+    const amount = Number(input);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+        alert('Enter a positive number.');
+        return;
+    }
 
     router.post(
         BillController.pay({ bill: bill.id }).url,
-        {},
+        { amount: amount.toFixed(2) },
         { preserveScroll: true },
     );
 };

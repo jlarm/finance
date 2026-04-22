@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
     'next_due_on',
     'last_paid_on',
     'autopay_reminder',
+    'split_across_paychecks',
     'is_active',
     'notes',
 ])]
@@ -40,6 +41,7 @@ class Bill extends Model
             'next_due_on' => 'date:Y-m-d',
             'last_paid_on' => 'date:Y-m-d',
             'autopay_reminder' => 'boolean',
+            'split_across_paychecks' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

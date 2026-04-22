@@ -38,6 +38,7 @@ class StoreBillRequest extends FormRequest
             'interval_days' => ['nullable', 'required_if:frequency,custom', 'integer', 'min:1', 'max:3650'],
             'next_due_on' => ['required', 'date'],
             'autopay_reminder' => ['sometimes', 'boolean'],
+            'split_across_paychecks' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];

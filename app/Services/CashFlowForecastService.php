@@ -122,19 +122,44 @@ class CashFlowForecastService
             // Non-recurring (interval_days unknown): just include the single due date if it falls in-window.
             if ($stepDays <= 0) {
                 if ($due->lte($horizon)) {
-                    $occurrences->push($this->projectedOccurrence($bill, $due));
+                    $this->pushOccurrences($occurrences, $bill, $due);
                 }
 
                 continue;
             }
 
             while ($due->lte($horizon)) {
-                $occurrences->push($this->projectedOccurrence($bill, $due));
+                $this->pushOccurrences($occurrences, $bill, $due);
                 $due = $due->copy()->addDays($stepDays);
             }
         }
 
         return $occurrences->sortBy('due_on')->values();
+    }
+
+    /**
+     * Emit forecast entries for a bill occurrence, splitting across two
+     * paychecks when the bill is flagged for it. The split pushes half on
+     * the due date and half 14 days before (the typical paycheck gap).
+     *
+     * @param  Collection<int, array{bill_id: int, name: string, amount: float, due_on: string}>  $occurrences
+     */
+    private function pushOccurrences(Collection $occurrences, Bill $bill, Carbon $due): void
+    {
+        $amount = (float) $bill->amount;
+
+        if ($bill->split_across_paychecks) {
+            $firstHalf = round($amount / 2, 2);
+            $secondHalf = round($amount - $firstHalf, 2);
+            $priorPaycheck = $due->copy()->subDays(14);
+
+            $occurrences->push($this->projectedOccurrence($bill, $priorPaycheck, $firstHalf));
+            $occurrences->push($this->projectedOccurrence($bill, $due, $secondHalf));
+
+            return;
+        }
+
+        $occurrences->push($this->projectedOccurrence($bill, $due, $amount));
     }
 
     /**
@@ -288,12 +313,12 @@ class CashFlowForecastService
     /**
      * @return array{bill_id: int, name: string, amount: float, due_on: string}
      */
-    private function projectedOccurrence(Bill $bill, Carbon $due): array
+    private function projectedOccurrence(Bill $bill, Carbon $due, ?float $amount = null): array
     {
         return [
             'bill_id' => (int) $bill->id,
             'name' => (string) $bill->name,
-            'amount' => (float) $bill->amount,
+            'amount' => $amount ?? (float) $bill->amount,
             'due_on' => $due->toDateString(),
         ];
     }

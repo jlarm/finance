@@ -41,6 +41,7 @@ class UpdateBillRequest extends FormRequest
             'next_due_on' => ['sometimes', 'required', 'date'],
             'last_paid_on' => ['nullable', 'date', 'before_or_equal:today'],
             'autopay_reminder' => ['sometimes', 'boolean'],
+            'split_across_paychecks' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];

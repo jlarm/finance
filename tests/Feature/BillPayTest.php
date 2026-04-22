@@ -70,6 +70,59 @@ test('a debt balance floors at zero when a bill payment would overshoot it', fun
     expect($debt->fresh()->balance)->toEqual('0.00');
 });
 
+test('an amount override reduces the debt by the overridden amount', function () {
+    $user = User::factory()->create();
+    $debt = Debt::factory()->for($user)->create(['balance' => 1000.00]);
+    $bill = Bill::factory()->for($user)->create([
+        'debt_id' => $debt->id,
+        'amount' => 100.00,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('bills.pay', $bill), ['amount' => 275.50])
+        ->assertRedirect();
+
+    expect($debt->fresh()->balance)->toEqual('724.50');
+});
+
+test('pay rejects a non-numeric amount override', function () {
+    $user = User::factory()->create();
+    $bill = Bill::factory()->for($user)->create(['amount' => 100.00]);
+
+    $this->actingAs($user)
+        ->post(route('bills.pay', $bill), ['amount' => 'abc'])
+        ->assertSessionHasErrors('amount');
+});
+
+test('paying a split bill advances next_due_on by 14 days', function () {
+    $user = User::factory()->create();
+    $bill = Bill::factory()->for($user)->create([
+        'amount' => 100.00,
+        'frequency' => 'monthly',
+        'next_due_on' => '2026-05-01',
+        'split_across_paychecks' => true,
+    ]);
+
+    $this->actingAs($user)->post(route('bills.pay', $bill))->assertRedirect();
+
+    expect($bill->fresh()->next_due_on->toDateString())->toBe('2026-05-15');
+});
+
+test('paying a split bill without an override deducts half from a linked debt', function () {
+    $user = User::factory()->create();
+    $debt = Debt::factory()->for($user)->create(['balance' => 500.00]);
+    $bill = Bill::factory()->for($user)->create([
+        'debt_id' => $debt->id,
+        'amount' => 100.00,
+        'frequency' => 'monthly',
+        'split_across_paychecks' => true,
+    ]);
+
+    $this->actingAs($user)->post(route('bills.pay', $bill))->assertRedirect();
+
+    expect($debt->fresh()->balance)->toEqual('450.00');
+});
+
 test('a user cannot mark another user\'s bill as paid', function () {
     $owner = User::factory()->create();
     $stranger = User::factory()->create();

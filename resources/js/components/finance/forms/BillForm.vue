@@ -22,6 +22,7 @@ type Bill = {
     interval_days?: number | string | null;
     next_due_on: string;
     autopay_reminder: boolean;
+    split_across_paychecks?: boolean;
     notes?: string | null;
 };
 
@@ -176,6 +177,22 @@ const frequency = ref<Bill['frequency']>(props.bill?.frequency ?? 'monthly');
             <Label for="autopay_reminder" class="m-0">Remind me before autopay</Label>
         </div>
         <InputError :message="errors.autopay_reminder" />
+
+        <div class="flex items-center gap-3">
+            <input type="hidden" name="split_across_paychecks" value="0" />
+            <input
+                id="split_across_paychecks"
+                name="split_across_paychecks"
+                type="checkbox"
+                value="1"
+                :checked="bill?.split_across_paychecks ?? false"
+                class="h-4 w-4"
+            />
+            <Label for="split_across_paychecks" class="m-0">
+                Split across two paychecks in the planner
+            </Label>
+        </div>
+        <InputError :message="errors.split_across_paychecks" />
 
         <div class="grid gap-2">
             <Label for="notes">Notes</Label>

@@ -63,7 +63,17 @@ class BillController extends Controller
     {
         abort_if($bill->user_id !== $request->user()->id, 403);
 
-        DB::transaction(function () use ($bill): void {
+        $validated = $request->validate([
+            'amount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
+        ]);
+
+        $paidAmount = isset($validated['amount'])
+            ? (float) $validated['amount']
+            : ($bill->split_across_paychecks
+                ? round((float) $bill->amount / 2, 2)
+                : (float) $bill->amount);
+
+        DB::transaction(function () use ($bill, $paidAmount): void {
             $today = today();
 
             $bill->forceFill([
@@ -75,7 +85,7 @@ class BillController extends Controller
                 $debt = $bill->debt()->lockForUpdate()->first();
 
                 if ($debt !== null) {
-                    $newBalance = max(0, (float) $debt->balance - (float) $bill->amount);
+                    $newBalance = max(0, (float) $debt->balance - $paidAmount);
                     $debt->forceFill(['balance' => $newBalance])->save();
                 }
             }
@@ -89,6 +99,13 @@ class BillController extends Controller
     private function advanceDueDate(Bill $bill, CarbonInterface $from): CarbonInterface
     {
         $anchor = Date::parse($bill->next_due_on)->max($from);
+
+        // Split bills are paid in two parts across two paychecks, so each
+        // "Mark paid" advances by roughly half a cycle. Two payments then
+        // cycle the bill forward by ~one full period.
+        if ($bill->split_across_paychecks) {
+            return $anchor->addDays(14);
+        }
 
         return match ($bill->frequency) {
             'weekly' => $anchor->addWeek(),
