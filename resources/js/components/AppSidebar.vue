@@ -15,7 +15,6 @@ import {
     Target,
     Wallet,
 } from 'lucide-vue-next';
-import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -106,7 +105,17 @@ const mainNavItems: NavItem[] = [
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
                         <Link :href="dashboard()">
-                            <AppLogo />
+                            <div
+                                class="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground"
+                            >
+                                <BookOpen class="size-5" />
+                            </div>
+                            <div class="ml-1 grid flex-1 text-left text-sm">
+                                <span
+                                    class="mb-0.5 truncate leading-tight font-semibold"
+                                    >Ledger</span
+                                >
+                            </div>
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
