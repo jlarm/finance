@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports;
 
+use App\Enums\ExpenseCategory;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ class MonthlySpendingReport
      *     },
      *     by_month: array<int, array{month: string, total: float}>,
      *     by_category_current_month: array<int, array{
-     *         category_id: int, name: string, color: ?string, total: float
+     *         category: string, name: string, color: string, total: float
      *     }>
      * }
      */
@@ -95,23 +96,27 @@ class MonthlySpendingReport
     }
 
     /**
-     * @return array<int, array{category_id: int, name: string, color: ?string, total: float}>
+     * @return array<int, array{category: string, name: string, color: string, total: float}>
      */
     private function byCategoryForMonth(User $user, CarbonInterface $month): array
     {
         return $user->expenses()
-            ->with('category:id,name,color')
+            ->toBase()
             ->whereBetween('occurred_on', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
-            ->selectRaw('expense_category_id, SUM(amount) as total')
-            ->groupBy('expense_category_id')
+            ->selectRaw('category, SUM(amount) as total')
+            ->groupBy('category')
             ->orderByDesc('total')
             ->get()
-            ->map(fn ($row): array => [
-                'category_id' => (int) $row->expense_category_id,
-                'name' => (string) ($row->category?->name ?? 'Uncategorized'),
-                'color' => $row->category?->color,
-                'total' => round((float) $row->total, 2),
-            ])
+            ->map(function ($row): array {
+                $enum = ExpenseCategory::tryFrom((string) $row->category);
+
+                return [
+                    'category' => (string) $row->category,
+                    'name' => $enum?->label() ?? 'Uncategorized',
+                    'color' => $enum?->color() ?? '#6b7280',
+                    'total' => round((float) $row->total, 2),
+                ];
+            })
             ->all();
     }
 

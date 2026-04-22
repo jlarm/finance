@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ExpenseCategory;
 use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Models\Expense;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,15 +19,14 @@ class ExpenseController extends Controller
         $filters = $request->validate([
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'category' => ['nullable', 'integer'],
+            'category' => ['nullable', Rule::enum(ExpenseCategory::class)],
             'search' => ['nullable', 'string', 'max:100'],
         ]);
 
         $expenses = $request->user()->expenses()
-            ->with('category')
             ->when($filters['from'] ?? null, fn ($q, $d) => $q->where('occurred_on', '>=', $d))
             ->when($filters['to'] ?? null, fn ($q, $d) => $q->where('occurred_on', '<=', $d))
-            ->when($filters['category'] ?? null, fn ($q, $id) => $q->where('expense_category_id', $id))
+            ->when($filters['category'] ?? null, fn ($q, $c) => $q->where('category', $c))
             ->when($filters['search'] ?? null, fn ($q, $s) => $q->where('description', 'like', "%{$s}%"))
             ->orderByDesc('occurred_on')
             ->orderByDesc('created_at')
@@ -34,16 +35,13 @@ class ExpenseController extends Controller
 
         return Inertia::render('expenses/Index', [
             'expenses' => $expenses,
-            'categories' => $request->user()->expenseCategories()->active()->orderBy('name')->get(),
             'filters' => $filters,
         ]);
     }
 
     public function create(Request $request): Response
     {
-        return Inertia::render('expenses/Create', [
-            'categories' => $request->user()->expenseCategories()->active()->orderBy('name')->get(),
-        ]);
+        return Inertia::render('expenses/Create');
     }
 
     public function store(StoreExpenseRequest $request): RedirectResponse
@@ -61,7 +59,6 @@ class ExpenseController extends Controller
 
         return Inertia::render('expenses/Edit', [
             'expense' => $expense,
-            'categories' => $request->user()->expenseCategories()->active()->orderBy('name')->get(),
         ]);
     }
 

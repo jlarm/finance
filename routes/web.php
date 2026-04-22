@@ -25,6 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('expenses', ExpenseController::class)->except('show');
     Route::resource('bills', BillController::class)
         ->only(['index', 'store', 'update', 'destroy']);
+    Route::post('bills/{bill}/pay', [BillController::class, 'pay'])->name('bills.pay');
     Route::resource('debts', DebtController::class)
         ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('income-sources', IncomeSourceController::class)

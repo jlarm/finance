@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ExpenseCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,12 +21,7 @@ class UpdateExpenseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'expense_category_id' => [
-                'sometimes',
-                'required',
-                'integer',
-                Rule::exists('expense_categories', 'id')->where('user_id', $this->user()->id),
-            ],
+            'category' => ['sometimes', 'required', Rule::enum(ExpenseCategory::class)],
             'amount' => ['sometimes', 'required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
             'occurred_on' => ['sometimes', 'required', 'date', 'before_or_equal:today'],
             'description' => ['sometimes', 'required', 'string', 'max:160'],
@@ -39,7 +35,6 @@ class UpdateExpenseRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'expense_category_id' => 'category',
             'occurred_on' => 'date',
         ];
     }
@@ -50,7 +45,6 @@ class UpdateExpenseRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'expense_category_id.exists' => 'Pick one of your categories.',
             'occurred_on.before_or_equal' => 'Expenses can\'t be dated in the future.',
         ];
     }

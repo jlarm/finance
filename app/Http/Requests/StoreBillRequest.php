@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ExpenseCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,16 +13,24 @@ class StoreBillRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ((string) $this->input('debt_id') === '0') {
+            $this->merge(['debt_id' => null]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'expense_category_id' => [
-                'required',
+            'category' => ['required', Rule::enum(ExpenseCategory::class)],
+            'debt_id' => [
+                'nullable',
                 'integer',
-                Rule::exists('expense_categories', 'id')->where('user_id', $this->user()->id),
+                Rule::exists('debts', 'id')->where('user_id', $this->user()->id),
             ],
             'name' => ['required', 'string', 'max:120'],
             'amount' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
@@ -40,7 +49,6 @@ class StoreBillRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'expense_category_id' => 'category',
             'next_due_on' => 'next due date',
             'interval_days' => 'custom interval',
         ];
@@ -52,7 +60,7 @@ class StoreBillRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'expense_category_id.exists' => 'Pick one of your categories.',
+            'debt_id.exists' => 'Pick one of your debts.',
             'interval_days.required_if' => 'Set the number of days between payments when the frequency is custom.',
         ];
     }

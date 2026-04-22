@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import ExpenseController from '@/actions/App/Http/Controllers/ExpenseController';
+import ExpenseForm from '@/components/finance/forms/ExpenseForm.vue';
 import Heading from '@/components/Heading.vue';
 import { Card, CardContent } from '@/components/ui/card';
-import ExpenseForm from '@/components/finance/forms/ExpenseForm.vue';
+import type { ExpenseCategory } from '@/lib/categories';
 import { index } from '@/routes/expenses';
 
 type Expense = {
@@ -12,12 +13,11 @@ type Expense = {
     occurred_on: string;
     description: string;
     notes: string | null;
-    expense_category_id: number;
+    category: ExpenseCategory;
 };
 
 defineProps<{
     expense: Expense;
-    categories: { id: number; name: string }[];
 }>();
 
 defineOptions({
@@ -40,7 +40,6 @@ defineOptions({
             <CardContent class="p-6">
                 <ExpenseForm
                     :action="ExpenseController.update({ expense: expense.id })"
-                    :categories="categories"
                     :expense="expense"
                     :cancel-href="index().url"
                     submit-label="Save changes"

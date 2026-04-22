@@ -48,7 +48,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const page = usePage();
 const auth = computed(() => page.props.auth);
-const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
+const { isCurrentOrParentUrl } = useCurrentUrl();
 
 const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
@@ -110,10 +110,9 @@ const rightNavItems: NavItem[] = [
                                         :href="item.href"
                                         class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
                                         :class="
-                                            whenCurrentUrl(
-                                                item.href,
-                                                activeItemStyles,
-                                            )
+                                            isCurrentOrParentUrl(item.href)
+                                                ? activeItemStyles
+                                                : null
                                         "
                                     >
                                         <component
@@ -164,10 +163,9 @@ const rightNavItems: NavItem[] = [
                                 <Link
                                     :class="[
                                         navigationMenuTriggerStyle(),
-                                        whenCurrentUrl(
-                                            item.href,
-                                            activeItemStyles,
-                                        ),
+                                        isCurrentOrParentUrl(item.href)
+                                            ? activeItemStyles
+                                            : null,
                                         'h-9 cursor-pointer px-3',
                                     ]"
                                     :href="item.href"
@@ -180,7 +178,7 @@ const rightNavItems: NavItem[] = [
                                     {{ item.title }}
                                 </Link>
                                 <div
-                                    v-if="isCurrentUrl(item.href)"
+                                    v-if="isCurrentOrParentUrl(item.href)"
                                     class="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
                                 ></div>
                             </NavigationMenuItem>

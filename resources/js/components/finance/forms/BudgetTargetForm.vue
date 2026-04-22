@@ -1,24 +1,23 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Form, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import FormSelect from '@/components/finance/FormSelect.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import FormSelect from '@/components/finance/FormSelect.vue';
+import { EXPENSE_CATEGORIES  } from '@/lib/categories';
+import type {ExpenseCategory} from '@/lib/categories';
 import type { RouteDefinition } from '@/wayfinder';
 
-type Category = { id: number; name: string };
-
 type BudgetTarget = {
-    expense_category_id: number | string;
+    category: ExpenseCategory | null;
     period_month: string;
     amount: number | string;
 };
 
 const props = defineProps<{
     action: RouteDefinition<'post' | 'put' | 'patch'>;
-    categories: Category[];
     target?: Partial<BudgetTarget>;
     cancelHref?: string;
     submitLabel?: string;
@@ -34,13 +33,13 @@ const emit = defineEmits<{
 
 const monthValue = computed(() => {
     const v = props.target?.period_month;
-    if (!v) return undefined;
+
+    if (!v) {
+        return undefined;
+    }
+
     return typeof v === 'string' && v.length >= 7 ? v.slice(0, 7) : v;
 });
-
-const categoryOptions = computed(() =>
-    props.categories.map((cat) => ({ value: cat.id, label: cat.name })),
-);
 </script>
 
 <template>
@@ -51,17 +50,17 @@ const categoryOptions = computed(() =>
         v-slot="{ errors, processing }"
     >
         <div class="grid gap-2">
-            <Label for="expense_category_id">Category</Label>
+            <Label for="category">Category</Label>
             <FormSelect
-                id="expense_category_id"
-                name="expense_category_id"
-                :options="categoryOptions"
-                :default-value="target?.expense_category_id ?? null"
+                id="category"
+                name="category"
+                :options="EXPENSE_CATEGORIES"
+                :default-value="target?.category ?? null"
                 :disabled="lockCategory"
                 placeholder="Choose a category"
                 required
             />
-            <InputError :message="errors.expense_category_id" />
+            <InputError :message="errors.category" />
         </div>
 
         <div class="grid gap-2">

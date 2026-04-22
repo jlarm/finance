@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\ExpenseCategory;
 use App\Models\BudgetTarget;
-use App\Models\ExpenseCategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -16,9 +16,7 @@ class BudgetTargetFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'expense_category_id' => fn (array $attributes) => ExpenseCategory::factory()
-                ->create(['user_id' => $attributes['user_id']])
-                ->id,
+            'category' => fake()->randomElement(ExpenseCategory::cases()),
             'period_month' => now()->startOfMonth()->toDateString(),
             'amount' => fake()->randomFloat(2, 50, 2000),
         ];

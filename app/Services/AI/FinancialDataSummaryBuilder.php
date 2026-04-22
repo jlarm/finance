@@ -2,6 +2,7 @@
 
 namespace App\Services\AI;
 
+use App\Enums\ExpenseCategory;
 use App\Models\Bill;
 use App\Models\BudgetTarget;
 use App\Models\Expense;
@@ -105,12 +106,14 @@ class FinancialDataSummaryBuilder
         $previous = $this->categoryTotals($user, $previousStart, $previousEnd);
         $targets = $this->budgetTargetsForPeriod($user, $start);
 
+        $previousByCategory = $previous->keyBy('category');
+
         $categories = $current
             ->map(fn (array $row): array => [
                 'name' => $row['name'],
                 'spent' => $row['spent'],
-                'target' => $targets[$row['category_id']] ?? null,
-                'prev_period_spent' => $previous[$row['category_id']]['spent'] ?? 0.0,
+                'target' => $targets[$row['category']] ?? null,
+                'prev_period_spent' => (float) ($previousByCategory[$row['category']]['spent'] ?? 0.0),
             ])
             ->sortByDesc('spent')
             ->take($this->topCategoryLimit)
@@ -118,18 +121,18 @@ class FinancialDataSummaryBuilder
             ->all();
 
         $transactionCounts = Expense::query()
+            ->toBase()
             ->where('user_id', $user->id)
-            ->between($start->toDateString(), $end->toDateString())
-            ->selectRaw('expense_category_id, COUNT(*) as c')
-            ->groupBy('expense_category_id')
-            ->pluck('c', 'expense_category_id')
+            ->whereBetween('occurred_on', [$start->toDateString(), $end->toDateString()])
+            ->selectRaw('category, COUNT(*) as c')
+            ->groupBy('category')
+            ->pluck('c', 'category')
             ->all();
 
-        $countsByName = collect($categories)
-            ->mapWithKeys(fn (array $row): array => [
-                $row['name'] => (int) ($transactionCounts[$this->categoryIdByName($user, $row['name'])] ?? 0),
-            ])
-            ->all();
+        $countsByName = [];
+        foreach ($current as $row) {
+            $countsByName[$row['name']] = (int) ($transactionCounts[$row['category']] ?? 0);
+        }
 
         return [
             'tone' => $this->tone($user),
@@ -372,7 +375,7 @@ class FinancialDataSummaryBuilder
     }
 
     /**
-     * @return array<int, array{category_id: int, name: string, spent: float, target: ?float}>
+     * @return array<int, array{category: string, name: string, spent: float, target: ?float}>
      */
     private function topCategoriesForPeriod(User $user, CarbonInterface $start, CarbonInterface $end): array
     {
@@ -380,10 +383,10 @@ class FinancialDataSummaryBuilder
 
         return $this->categoryTotals($user, $start, $end)
             ->map(fn (array $row): array => [
-                'category_id' => $row['category_id'],
+                'category' => $row['category'],
                 'name' => $row['name'],
                 'spent' => $row['spent'],
-                'target' => $targets[$row['category_id']] ?? null,
+                'target' => $targets[$row['category']] ?? null,
             ])
             ->sortByDesc('spent')
             ->take($this->topCategoryLimit)
@@ -392,43 +395,36 @@ class FinancialDataSummaryBuilder
     }
 
     /**
-     * @return Collection<int, array{category_id: int, name: string, spent: float}>
+     * @return Collection<int, array{category: string, name: string, spent: float}>
      */
     private function categoryTotals(User $user, CarbonInterface $start, CarbonInterface $end): Collection
     {
         return Expense::query()
-            ->where('expenses.user_id', $user->id)
-            ->between($start->toDateString(), $end->toDateString())
-            ->join('expense_categories', 'expense_categories.id', '=', 'expenses.expense_category_id')
-            ->groupBy('expenses.expense_category_id', 'expense_categories.name')
-            ->selectRaw(
-                'expenses.expense_category_id as category_id, expense_categories.name as name, SUM(expenses.amount) as total'
-            )
+            ->toBase()
+            ->where('user_id', $user->id)
+            ->whereBetween('occurred_on', [$start->toDateString(), $end->toDateString()])
+            ->selectRaw('category, SUM(amount) as total')
+            ->groupBy('category')
             ->get()
             ->map(fn ($row): array => [
-                'category_id' => (int) $row->category_id,
-                'name' => (string) $row->name,
+                'category' => (string) $row->category,
+                'name' => ExpenseCategory::tryFrom((string) $row->category)?->label() ?? 'Uncategorized',
                 'spent' => round((float) $row->total, 2),
             ]);
     }
 
     /**
-     * @return array<int, float> [expense_category_id => target amount]
+     * @return array<string, float> [category enum value => target amount]
      */
     private function budgetTargetsForPeriod(User $user, CarbonInterface $start): array
     {
         return BudgetTarget::query()
+            ->toBase()
             ->where('user_id', $user->id)
-            ->forMonth($start->year, $start->month)
-            ->pluck('amount', 'expense_category_id')
+            ->whereYear('period_month', $start->year)
+            ->whereMonth('period_month', $start->month)
+            ->pluck('amount', 'category')
             ->map(fn ($amount): float => round((float) $amount, 2))
             ->all();
-    }
-
-    private function categoryIdByName(User $user, string $name): ?int
-    {
-        return $user->expenseCategories()
-            ->where('name', $name)
-            ->value('id');
     }
 }

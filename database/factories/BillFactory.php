@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\ExpenseCategory;
 use App\Models\Bill;
-use App\Models\ExpenseCategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -15,27 +15,25 @@ class BillFactory extends Factory
     /**
      * Realistic bill archetypes used by the demo seeder.
      *
-     * @var array<int, array{name: string, amount: float, frequency: string, category: string}>
+     * @var array<int, array{name: string, amount: float, frequency: string, category: ExpenseCategory}>
      */
     public const DEFAULTS = [
-        ['name' => 'Rent', 'amount' => 1450.00, 'frequency' => 'monthly', 'category' => 'Housing'],
-        ['name' => 'Electric', 'amount' => 95.00, 'frequency' => 'monthly', 'category' => 'Utilities'],
-        ['name' => 'Internet', 'amount' => 65.00, 'frequency' => 'monthly', 'category' => 'Utilities'],
-        ['name' => 'Phone', 'amount' => 55.00, 'frequency' => 'monthly', 'category' => 'Utilities'],
-        ['name' => 'Netflix', 'amount' => 15.49, 'frequency' => 'monthly', 'category' => 'Subscriptions'],
-        ['name' => 'Spotify', 'amount' => 10.99, 'frequency' => 'monthly', 'category' => 'Subscriptions'],
-        ['name' => 'Gym', 'amount' => 32.00, 'frequency' => 'monthly', 'category' => 'Health'],
-        ['name' => 'Car Insurance', 'amount' => 420.00, 'frequency' => 'quarterly', 'category' => 'Transportation'],
-        ['name' => 'Amazon Prime', 'amount' => 139.00, 'frequency' => 'annual', 'category' => 'Subscriptions'],
+        ['name' => 'Rent', 'amount' => 1450.00, 'frequency' => 'monthly', 'category' => ExpenseCategory::Housing],
+        ['name' => 'Electric', 'amount' => 95.00, 'frequency' => 'monthly', 'category' => ExpenseCategory::Utilities],
+        ['name' => 'Internet', 'amount' => 65.00, 'frequency' => 'monthly', 'category' => ExpenseCategory::Utilities],
+        ['name' => 'Phone', 'amount' => 55.00, 'frequency' => 'monthly', 'category' => ExpenseCategory::Utilities],
+        ['name' => 'Netflix', 'amount' => 15.49, 'frequency' => 'monthly', 'category' => ExpenseCategory::Subscriptions],
+        ['name' => 'Spotify', 'amount' => 10.99, 'frequency' => 'monthly', 'category' => ExpenseCategory::Subscriptions],
+        ['name' => 'Gym', 'amount' => 32.00, 'frequency' => 'monthly', 'category' => ExpenseCategory::Health],
+        ['name' => 'Car Insurance', 'amount' => 420.00, 'frequency' => 'quarterly', 'category' => ExpenseCategory::Transportation],
+        ['name' => 'Amazon Prime', 'amount' => 139.00, 'frequency' => 'annual', 'category' => ExpenseCategory::Subscriptions],
     ];
 
     public function definition(): array
     {
         return [
             'user_id' => User::factory(),
-            'expense_category_id' => fn (array $attributes) => ExpenseCategory::factory()
-                ->create(['user_id' => $attributes['user_id']])
-                ->id,
+            'category' => fake()->randomElement(ExpenseCategory::cases()),
             'name' => fake()->company(),
             'amount' => fake()->randomFloat(2, 10, 800),
             'frequency' => 'monthly',

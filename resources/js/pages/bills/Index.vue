@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import BillController from '@/actions/App/Http/Controllers/BillController';
+import BillForm from '@/components/finance/forms/BillForm.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,26 +13,28 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import BillForm from '@/components/finance/forms/BillForm.vue';
-import BillController from '@/actions/App/Http/Controllers/BillController';
-import { index } from '@/routes/bills';
+import { categoryLabel  } from '@/lib/categories';
+import type {ExpenseCategory} from '@/lib/categories';
 import { formatDate } from '@/lib/utils';
+import { index } from '@/routes/bills';
+
 
 type Bill = {
     id: number;
     name: string;
     amount: number;
-    expense_category_id: number | null;
+    category: ExpenseCategory | null;
+    debt_id: number | null;
     frequency: 'monthly' | 'weekly' | 'biweekly' | 'quarterly' | 'annual' | 'custom';
     interval_days: number | null;
     next_due_on: string;
     autopay_reminder: boolean;
     notes: string | null;
     status?: string;
-    category: { id: number; name: string } | null;
+    debt: { id: number; name: string } | null;
 };
 
-type Category = { id: number; name: string };
+type Debt = { id: number; name: string; balance: number | string };
 
 type Paginated<T> = {
     data: T[];
@@ -45,7 +49,7 @@ type Paginated<T> = {
 
 defineProps<{
     bills: Paginated<Bill>;
-    categories: Category[];
+    debts: Debt[];
 }>();
 
 defineOptions({
@@ -78,9 +82,31 @@ const handleSuccess = () => {
     editing.value = null;
 };
 
+const markPaid = (bill: Bill) => {
+    const msg = bill.debt
+        ? `Record payment of ${money(bill.amount)} for ${bill.name}? This will reduce ${bill.debt.name}'s balance.`
+        : `Record payment of ${money(bill.amount)} for ${bill.name}?`;
+
+    if (!confirm(msg)) {
+return;
+}
+
+    router.post(
+        BillController.pay({ bill: bill.id }).url,
+        {},
+        { preserveScroll: true },
+    );
+};
+
 const handleDelete = () => {
-    if (!editing.value) return;
-    if (!confirm('Delete this bill? This cannot be undone.')) return;
+    if (!editing.value) {
+return;
+}
+
+    if (!confirm('Delete this bill? This cannot be undone.')) {
+return;
+}
+
     router.delete(BillController.destroy({ bill: editing.value.id }).url, {
         preserveScroll: true,
         onSuccess: () => {
@@ -91,7 +117,10 @@ const handleDelete = () => {
 };
 
 const goToPage = (url: string | null) => {
-    if (!url) return;
+    if (!url) {
+return;
+}
+
     router.get(url, {}, { preserveState: true, preserveScroll: true });
 };
 </script>
@@ -131,7 +160,8 @@ const goToPage = (url: string | null) => {
                             <th class="px-4 py-3 text-right font-medium">
                                 Amount
                             </th>
-                            <th class="w-10"></th>
+                            <th class="w-24"></th>
+                            <th class="w-16"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -143,7 +173,10 @@ const goToPage = (url: string | null) => {
                             <td class="px-4 py-3">
                                 <div class="font-medium">{{ bill.name }}</div>
                                 <div class="text-xs text-muted-foreground">
-                                    {{ bill.category?.name ?? '—' }}
+                                    {{ categoryLabel(bill.category) }}
+                                    <span v-if="bill.debt">
+                                        · pays down {{ bill.debt.name }}
+                                    </span>
                                 </div>
                             </td>
                             <td
@@ -154,6 +187,15 @@ const goToPage = (url: string | null) => {
                             <td class="px-4 py-3">{{ formatDate(bill.next_due_on) }}</td>
                             <td class="px-4 py-3 text-right tabular-nums">
                                 {{ money(bill.amount) }}
+                            </td>
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                                <button
+                                    type="button"
+                                    class="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                                    @click="markPaid(bill)"
+                                >
+                                    Mark paid
+                                </button>
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <button
@@ -223,7 +265,7 @@ const goToPage = (url: string | null) => {
                             ? BillController.update({ bill: editing.id })
                             : BillController.store()
                     "
-                    :categories="categories"
+                    :debts="debts"
                     :bill="editing ?? undefined"
                     :submit-label="editing ? 'Save changes' : 'Save bill'"
                     :deletable="!!editing"

@@ -1,20 +1,23 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { Form, Link } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import FormDatePicker from '@/components/finance/FormDatePicker.vue';
+import FormSelect from '@/components/finance/FormSelect.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import FormSelect from '@/components/finance/FormSelect.vue';
-import FormDatePicker from '@/components/finance/FormDatePicker.vue';
+import { EXPENSE_CATEGORIES  } from '@/lib/categories';
+import type {ExpenseCategory} from '@/lib/categories';
 import type { RouteDefinition } from '@/wayfinder';
 
-type Category = { id: number; name: string };
+type Debt = { id: number; name: string };
 
 type Bill = {
     name: string;
     amount: number | string;
-    expense_category_id: number | string | null;
+    category: ExpenseCategory | null;
+    debt_id?: number | string | null;
     frequency: 'monthly' | 'weekly' | 'biweekly' | 'quarterly' | 'annual' | 'custom';
     interval_days?: number | string | null;
     next_due_on: string;
@@ -24,7 +27,7 @@ type Bill = {
 
 const props = defineProps<{
     action: RouteDefinition<'post' | 'put' | 'patch'>;
-    categories: Category[];
+    debts?: Debt[];
     bill?: Partial<Bill>;
     cancelHref?: string;
     submitLabel?: string;
@@ -37,8 +40,14 @@ const emit = defineEmits<{
     delete: [];
 }>();
 
-const categoryOptions = computed(() =>
-    props.categories.map((cat) => ({ value: cat.id, label: cat.name })),
+const debtOptions = computed<{ value: string | number; label: string }[]>(
+    () => [
+        { value: '0', label: 'None' },
+        ...(props.debts ?? []).map((debt) => ({
+            value: debt.id,
+            label: debt.name,
+        })),
+    ],
 );
 
 const frequencyOptions: { value: Bill['frequency']; label: string }[] = [
@@ -74,16 +83,32 @@ const frequency = ref<Bill['frequency']>(props.bill?.frequency ?? 'monthly');
         </div>
 
         <div class="grid gap-2">
-            <Label for="expense_category_id">Category</Label>
+            <Label for="category">Category</Label>
             <FormSelect
-                id="expense_category_id"
-                name="expense_category_id"
-                :options="categoryOptions"
-                :default-value="bill?.expense_category_id ?? null"
+                id="category"
+                name="category"
+                :options="EXPENSE_CATEGORIES"
+                :default-value="bill?.category ?? null"
                 placeholder="Choose a category"
                 required
             />
-            <InputError :message="errors.expense_category_id" />
+            <InputError :message="errors.category" />
+        </div>
+
+        <div v-if="(debts?.length ?? 0) > 0" class="grid gap-2">
+            <Label for="debt_id">Pays down debt (optional)</Label>
+            <FormSelect
+                id="debt_id"
+                name="debt_id"
+                :options="debtOptions"
+                :default-value="bill?.debt_id ?? '0'"
+                placeholder="None"
+            />
+            <p class="text-xs text-muted-foreground">
+                Marking this bill paid will reduce the linked debt's balance by
+                the bill amount.
+            </p>
+            <InputError :message="errors.debt_id" />
         </div>
 
         <div class="grid gap-2">

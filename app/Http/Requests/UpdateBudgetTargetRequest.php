@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ExpenseCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,12 +32,7 @@ class UpdateBudgetTargetRequest extends FormRequest
         $target = $this->route('budget_target');
 
         return [
-            'expense_category_id' => [
-                'sometimes',
-                'required',
-                'integer',
-                Rule::exists('expense_categories', 'id')->where('user_id', $this->user()->id),
-            ],
+            'category' => ['sometimes', 'required', Rule::enum(ExpenseCategory::class)],
             'period_month' => [
                 'sometimes',
                 'required',
@@ -45,7 +41,7 @@ class UpdateBudgetTargetRequest extends FormRequest
                     ->ignore($target?->id)
                     ->where(fn ($q) => $q
                         ->where('user_id', $this->user()->id)
-                        ->where('expense_category_id', $this->input('expense_category_id', $target?->expense_category_id))
+                        ->where('category', $this->input('category', $target?->category?->value))
                         ->where('period_month', $this->input('period_month'))
                     ),
             ],
@@ -59,7 +55,6 @@ class UpdateBudgetTargetRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'expense_category_id' => 'category',
             'period_month' => 'month',
         ];
     }
@@ -70,7 +65,6 @@ class UpdateBudgetTargetRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'expense_category_id.exists' => 'Pick one of your categories.',
             'period_month.unique' => 'You already have a budget target for this category in that month.',
         ];
     }

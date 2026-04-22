@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import BudgetTargetController from '@/actions/App/Http/Controllers/BudgetTargetController';
+import BudgetTargetForm from '@/components/finance/forms/BudgetTargetForm.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,15 +21,16 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import BudgetTargetForm from '@/components/finance/forms/BudgetTargetForm.vue';
-import BudgetTargetController from '@/actions/App/Http/Controllers/BudgetTargetController';
+import {
+    EXPENSE_CATEGORIES
+    
+} from '@/lib/categories';
+import type {ExpenseCategory} from '@/lib/categories';
 import { index } from '@/routes/budget-targets';
-
-type Category = { id: number; name: string };
 
 type BudgetTarget = {
     id: number;
-    expense_category_id: number;
+    category: ExpenseCategory;
     period_month: string;
     amount: number;
 };
@@ -36,7 +39,6 @@ const props = defineProps<{
     periodMonth: string;
     targets: BudgetTarget[];
     actuals: Record<string, number>;
-    categories: Category[];
 }>();
 
 defineOptions({
@@ -56,6 +58,7 @@ const monthInput = ref(props.periodMonth.slice(0, 7));
 const monthLabel = computed(() => {
     const [y, m] = props.periodMonth.split('-');
     const date = new Date(Number(y), Number(m) - 1, 1);
+
     return date.toLocaleDateString(undefined, {
         month: 'long',
         year: 'numeric',
@@ -63,7 +66,10 @@ const monthLabel = computed(() => {
 });
 
 const changeMonth = (value: string) => {
-    if (!value) return;
+    if (!value) {
+        return;
+    }
+
     router.get(
         index().url,
         { month: value },
@@ -72,16 +78,15 @@ const changeMonth = (value: string) => {
 };
 
 const rows = computed(() => {
-    const byCategory = new Map(
-        props.targets.map((t) => [t.expense_category_id, t]),
-    );
+    const byCategory = new Map(props.targets.map((t) => [t.category, t]));
 
-    return props.categories.map((cat) => {
-        const target = byCategory.get(cat.id) ?? null;
-        const actual = Number(props.actuals?.[cat.id] ?? 0);
+    return EXPENSE_CATEGORIES.map((cat) => {
+        const target = byCategory.get(cat.value) ?? null;
+        const actual = Number(props.actuals?.[cat.value] ?? 0);
         const targetAmount = target ? Number(target.amount) : 0;
         const percent =
             targetAmount > 0 ? Math.min(999, (actual / targetAmount) * 100) : 0;
+
         return {
             category: cat,
             target,
@@ -96,37 +101,44 @@ const rows = computed(() => {
 const totals = computed(() => {
     const targeted = props.targets.reduce((s, t) => s + Number(t.amount), 0);
     const spent = props.targets.reduce(
-        (s, t) => s + Number(props.actuals?.[t.expense_category_id] ?? 0),
+        (s, t) => s + Number(props.actuals?.[t.category] ?? 0),
         0,
     );
+
     return { targeted, spent, remaining: targeted - spent };
 });
 
 const dialogOpen = ref(false);
 const editing = ref<BudgetTarget | null>(null);
-const presetCategoryId = ref<number | null>(null);
+const presetCategory = ref<ExpenseCategory | null>(null);
 
-const openCreate = (categoryId?: number) => {
+const openCreate = (category?: ExpenseCategory) => {
     editing.value = null;
-    presetCategoryId.value = categoryId ?? null;
+    presetCategory.value = category ?? null;
     dialogOpen.value = true;
 };
 
 const openEdit = (target: BudgetTarget) => {
     editing.value = target;
-    presetCategoryId.value = null;
+    presetCategory.value = null;
     dialogOpen.value = true;
 };
 
 const handleSuccess = () => {
     dialogOpen.value = false;
     editing.value = null;
-    presetCategoryId.value = null;
+    presetCategory.value = null;
 };
 
 const handleDelete = () => {
-    if (!editing.value) return;
-    if (!confirm('Delete this budget target? This cannot be undone.')) return;
+    if (!editing.value) {
+        return;
+    }
+
+    if (!confirm('Delete this budget target? This cannot be undone.')) {
+        return;
+    }
+
     router.delete(
         BudgetTargetController.destroy({ budget_target: editing.value.id }).url,
         {
@@ -140,13 +152,17 @@ const handleDelete = () => {
 };
 
 const formTarget = computed<Partial<BudgetTarget> | undefined>(() => {
-    if (editing.value) return editing.value;
-    if (presetCategoryId.value !== null) {
+    if (editing.value) {
+        return editing.value;
+    }
+
+    if (presetCategory.value !== null) {
         return {
-            expense_category_id: presetCategoryId.value,
+            category: presetCategory.value,
             period_month: props.periodMonth,
         };
     }
+
     return { period_month: props.periodMonth };
 });
 </script>
@@ -209,17 +225,7 @@ const formTarget = computed<Partial<BudgetTarget> | undefined>(() => {
 
         <Card>
             <CardContent class="p-0">
-                <div
-                    v-if="!rows.length"
-                    class="flex flex-col items-center gap-2 p-10 text-center"
-                >
-                    <p class="font-medium">No categories yet</p>
-                    <p class="text-sm text-muted-foreground">
-                        Add categories from Settings to start budgeting.
-                    </p>
-                </div>
-
-                <table v-else class="w-full text-sm">
+                <table class="w-full text-sm">
                     <thead class="border-b text-left text-muted-foreground">
                         <tr>
                             <th class="px-4 py-3 font-medium">Category</th>
@@ -232,11 +238,11 @@ const formTarget = computed<Partial<BudgetTarget> | undefined>(() => {
                     <tbody>
                         <tr
                             v-for="row in rows"
-                            :key="row.category.id"
+                            :key="row.category.value"
                             class="border-b last:border-0"
                         >
                             <td class="px-4 py-3 font-medium">
-                                {{ row.category.name }}
+                                {{ row.category.label }}
                             </td>
                             <td class="px-4 py-3 text-right tabular-nums">
                                 <span v-if="row.target">
@@ -291,7 +297,7 @@ const formTarget = computed<Partial<BudgetTarget> | undefined>(() => {
                                     v-else
                                     type="button"
                                     class="text-sm text-primary underline-offset-4 hover:underline"
-                                    @click="openCreate(row.category.id)"
+                                    @click="openCreate(row.category.value)"
                                 >
                                     Set target
                                 </button>
@@ -319,7 +325,7 @@ const formTarget = computed<Partial<BudgetTarget> | undefined>(() => {
 
                 <BudgetTargetForm
                     v-if="dialogOpen"
-                    :key="editing?.id ?? `new-${presetCategoryId ?? 'x'}`"
+                    :key="editing?.id ?? `new-${presetCategory ?? 'x'}`"
                     :action="
                         editing
                             ? BudgetTargetController.update({
@@ -327,7 +333,6 @@ const formTarget = computed<Partial<BudgetTarget> | undefined>(() => {
                               })
                             : BudgetTargetController.store()
                     "
-                    :categories="categories"
                     :target="formTarget"
                     :lock-category="!!editing"
                     :submit-label="editing ? 'Save changes' : 'Save target'"

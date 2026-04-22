@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ExpenseCategory;
 use App\Models\AiInsight;
 use App\Models\Bill;
 use App\Models\BudgetTarget;
 use App\Models\Debt;
 use App\Models\Expense;
-use App\Models\ExpenseCategory;
 use App\Models\IncomeSource;
 use App\Models\SavingsGoal;
 use App\Models\User;
@@ -15,7 +15,6 @@ use App\Models\UserFinanceSetting;
 use Carbon\CarbonInterface;
 use Database\Factories\AiInsightFactory;
 use Database\Factories\BillFactory;
-use Database\Factories\ExpenseCategoryFactory;
 use Database\Factories\ExpenseFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -64,40 +63,19 @@ class DemoUserSeeder extends Seeder
         $user->savingsGoals()->delete();
         $user->budgetTargets()->delete();
         $user->aiInsights()->delete();
-        $user->expenseCategories()->delete();
 
-        $categories = $this->seedCategories($user);
         $this->seedIncome($user);
-        $this->seedBills($user, $categories);
+        $this->seedBills($user);
         $this->seedDebts($user);
         $this->seedSavingsGoals($user);
-        $this->seedExpenses($user, $categories);
-        $this->seedBudgetTargets($user, $categories);
+        $this->seedExpenses($user);
+        $this->seedBudgetTargets($user);
         $this->seedInsights($user);
 
         $this->command?->info(sprintf(
             'Demo user ready: %s (password: password)',
             self::DEMO_EMAIL,
         ));
-    }
-
-    /**
-     * @return array<string, ExpenseCategory>
-     */
-    private function seedCategories(User $user): array
-    {
-        $categories = [];
-
-        foreach (ExpenseCategoryFactory::DEFAULTS as $row) {
-            $categories[$row['name']] = ExpenseCategory::create([
-                'user_id' => $user->id,
-                'name' => $row['name'],
-                'color' => $row['color'],
-                'is_archived' => false,
-            ]);
-        }
-
-        return $categories;
     }
 
     private function seedIncome(User $user): void
@@ -125,21 +103,12 @@ class DemoUserSeeder extends Seeder
         }
     }
 
-    /**
-     * @param  array<string, ExpenseCategory>  $categories
-     */
-    private function seedBills(User $user, array $categories): void
+    private function seedBills(User $user): void
     {
         foreach (BillFactory::DEFAULTS as $row) {
-            $category = $categories[$row['category']] ?? null;
-
-            if ($category === null) {
-                continue;
-            }
-
             Bill::create([
                 'user_id' => $user->id,
-                'expense_category_id' => $category->id,
+                'category' => $row['category'],
                 'name' => $row['name'],
                 'amount' => $row['amount'],
                 'frequency' => $row['frequency'],
@@ -210,23 +179,20 @@ class DemoUserSeeder extends Seeder
         ]);
     }
 
-    /**
-     * @param  array<string, ExpenseCategory>  $categories
-     */
-    private function seedExpenses(User $user, array $categories): void
+    private function seedExpenses(User $user): void
     {
         // Monthly targets per category (rough averages, USD).
         $monthlySpend = [
-            'Groceries' => 520,
-            'Dining Out' => 240,
-            'Transportation' => 180,
-            'Utilities' => 220,
-            'Housing' => 1450,
-            'Entertainment' => 90,
-            'Health' => 75,
-            'Shopping' => 160,
-            'Subscriptions' => 40,
-            'Personal Care' => 55,
+            ExpenseCategory::Groceries->value => 520,
+            ExpenseCategory::DiningOut->value => 240,
+            ExpenseCategory::Transportation->value => 180,
+            ExpenseCategory::Utilities->value => 220,
+            ExpenseCategory::Housing->value => 1450,
+            ExpenseCategory::Entertainment->value => 90,
+            ExpenseCategory::Health->value => 75,
+            ExpenseCategory::Shopping->value => 160,
+            ExpenseCategory::Subscriptions->value => 40,
+            ExpenseCategory::PersonalCare->value => 55,
         ];
 
         for ($i = self::HISTORY_MONTHS - 1; $i >= 0; $i--) {
@@ -234,21 +200,13 @@ class DemoUserSeeder extends Seeder
             $monthEnd = $monthStart->copy()->endOfMonth();
             $isCurrent = $i === 0;
 
-            foreach ($monthlySpend as $name => $target) {
-                $category = $categories[$name] ?? null;
+            foreach ($monthlySpend as $categoryValue => $target) {
+                $category = ExpenseCategory::from($categoryValue);
 
-                if ($category === null) {
-                    continue;
-                }
-
-                // Spread the monthly target across 3-8 expenses; a small drift
-                // across months keeps trend signals believable.
                 $count = random_int(3, 8);
                 $drift = random_int(-15, 15) / 100;
                 $budget = (float) $target * (1 + $drift);
 
-                // The current month is only partially elapsed — scale down so
-                // the dashboard doesn't read as overshooting on day 5.
                 if ($isCurrent) {
                     $elapsed = today()->day / max($monthEnd->day, 1);
                     $budget *= $elapsed;
@@ -279,7 +237,7 @@ class DemoUserSeeder extends Seeder
             return;
         }
 
-        $descriptions = ExpenseFactory::DESCRIPTIONS[$category->name] ?? ['Misc expense'];
+        $descriptions = ExpenseFactory::DESCRIPTIONS[$category->value] ?? ['Misc expense'];
         $remaining = $totalAmount;
 
         for ($i = 0; $i < $count; $i++) {
@@ -293,7 +251,7 @@ class DemoUserSeeder extends Seeder
 
             Expense::create([
                 'user_id' => $user->id,
-                'expense_category_id' => $category->id,
+                'category' => $category,
                 'amount' => round($share, 2),
                 'occurred_on' => Carbon::createFromTimestamp(
                     random_int($from->timestamp, $to->timestamp),
@@ -303,32 +261,23 @@ class DemoUserSeeder extends Seeder
         }
     }
 
-    /**
-     * @param  array<string, ExpenseCategory>  $categories
-     */
-    private function seedBudgetTargets(User $user, array $categories): void
+    private function seedBudgetTargets(User $user): void
     {
         $targets = [
-            'Groceries' => 550,
-            'Dining Out' => 200,
-            'Transportation' => 200,
-            'Entertainment' => 100,
-            'Shopping' => 150,
-            'Subscriptions' => 50,
+            ExpenseCategory::Groceries->value => 550,
+            ExpenseCategory::DiningOut->value => 200,
+            ExpenseCategory::Transportation->value => 200,
+            ExpenseCategory::Entertainment->value => 100,
+            ExpenseCategory::Shopping->value => 150,
+            ExpenseCategory::Subscriptions->value => 50,
         ];
 
         $month = today()->copy()->startOfMonth()->toDateString();
 
-        foreach ($targets as $name => $amount) {
-            $category = $categories[$name] ?? null;
-
-            if ($category === null) {
-                continue;
-            }
-
+        foreach ($targets as $categoryValue => $amount) {
             BudgetTarget::create([
                 'user_id' => $user->id,
-                'expense_category_id' => $category->id,
+                'category' => ExpenseCategory::from($categoryValue),
                 'period_month' => $month,
                 'amount' => $amount,
             ]);

@@ -26,21 +26,20 @@ class BudgetTargetController extends Controller
         $user = $request->user();
 
         $targets = $user->budgetTargets()
-            ->with('category')
             ->whereDate('period_month', $periodMonth)
             ->get();
 
         $actuals = $user->expenses()
+            ->toBase()
             ->whereBetween('occurred_on', [$periodMonth, $periodMonth->copy()->endOfMonth()])
-            ->selectRaw('expense_category_id, SUM(amount) as total')
-            ->groupBy('expense_category_id')
-            ->pluck('total', 'expense_category_id');
+            ->selectRaw('category, SUM(amount) as total')
+            ->groupBy('category')
+            ->pluck('total', 'category');
 
         return Inertia::render('budget-targets/Index', [
             'periodMonth' => $periodMonth->toDateString(),
             'targets' => $targets,
             'actuals' => $actuals,
-            'categories' => $user->expenseCategories()->active()->orderBy('name')->get(),
         ]);
     }
 

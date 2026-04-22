@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Form, Link } from '@inertiajs/vue3';
+import FormDatePicker from '@/components/finance/FormDatePicker.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import FormDatePicker from '@/components/finance/FormDatePicker.vue';
 import type { RouteDefinition } from '@/wayfinder';
 
 type IncomeSource = {

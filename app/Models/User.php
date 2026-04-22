@@ -34,11 +34,6 @@ class User extends Authenticatable
         ];
     }
 
-    public function expenseCategories(): HasMany
-    {
-        return $this->hasMany(ExpenseCategory::class);
-    }
-
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);

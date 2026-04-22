@@ -1,27 +1,25 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Form, Link } from '@inertiajs/vue3';
+import FormDatePicker from '@/components/finance/FormDatePicker.vue';
+import FormSelect from '@/components/finance/FormSelect.vue';
 import InputError from '@/components/InputError.vue';
-import type { RouteDefinition } from '@/wayfinder';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import FormSelect from '@/components/finance/FormSelect.vue';
-import FormDatePicker from '@/components/finance/FormDatePicker.vue';
-
-type Category = { id: number; name: string };
+import { EXPENSE_CATEGORIES  } from '@/lib/categories';
+import type {ExpenseCategory} from '@/lib/categories';
+import type { RouteDefinition } from '@/wayfinder';
 
 type Expense = {
     amount: number | string;
-    expense_category_id: number | string;
+    category: ExpenseCategory | null;
     occurred_on: string;
     description: string;
     notes?: string | null;
 };
 
-const props = defineProps<{
+defineProps<{
     action: RouteDefinition<'post' | 'put' | 'patch'>;
-    categories: Category[];
     expense?: Partial<Expense>;
     cancelHref?: string;
     submitLabel?: string;
@@ -33,10 +31,6 @@ const emit = defineEmits<{
     cancel: [];
     delete: [];
 }>();
-
-const categoryOptions = computed(() =>
-    props.categories.map((cat) => ({ value: cat.id, label: cat.name })),
-);
 </script>
 
 <template>
@@ -62,16 +56,16 @@ const categoryOptions = computed(() =>
         </div>
 
         <div class="grid gap-2">
-            <Label for="expense_category_id">Category</Label>
+            <Label for="category">Category</Label>
             <FormSelect
-                id="expense_category_id"
-                name="expense_category_id"
-                :options="categoryOptions"
-                :default-value="expense?.expense_category_id ?? null"
+                id="category"
+                name="category"
+                :options="EXPENSE_CATEGORIES"
+                :default-value="expense?.category ?? null"
                 placeholder="Choose a category"
                 required
             />
-            <InputError :message="errors.expense_category_id" />
+            <InputError :message="errors.category" />
         </div>
 
         <div class="grid gap-2">
@@ -123,11 +117,7 @@ const categoryOptions = computed(() =>
             </Button>
             <span v-else></span>
             <div class="flex gap-2">
-                <Button
-                    v-if="cancelHref"
-                    variant="ghost"
-                    as-child
-                >
+                <Button v-if="cancelHref" variant="ghost" as-child>
                     <Link :href="cancelHref">Cancel</Link>
                 </Button>
                 <Button

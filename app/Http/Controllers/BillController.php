@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreBillRequest;
 use App\Http\Requests\UpdateBillRequest;
 use App\Models\Bill;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,7 +18,7 @@ class BillController extends Controller
     public function index(Request $request): Response
     {
         $bills = $request->user()->bills()
-            ->with('category')
+            ->with('debt')
             ->active()
             ->orderBy('next_due_on')
             ->paginate(25)
@@ -23,7 +26,7 @@ class BillController extends Controller
 
         return Inertia::render('bills/Index', [
             'bills' => $bills,
-            'categories' => $request->user()->expenseCategories()->active()->orderBy('name')->get(),
+            'debts' => $request->user()->debts()->active()->orderBy('name')->get(['id', 'name', 'balance']),
         ]);
     }
 
@@ -54,5 +57,47 @@ class BillController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Bill removed.')]);
 
         return to_route('bills.index');
+    }
+
+    public function pay(Request $request, Bill $bill): RedirectResponse
+    {
+        abort_if($bill->user_id !== $request->user()->id, 403);
+
+        DB::transaction(function () use ($bill): void {
+            $today = today();
+
+            $bill->forceFill([
+                'last_paid_on' => $today,
+                'next_due_on' => $this->advanceDueDate($bill, $today),
+            ])->save();
+
+            if ($bill->debt_id !== null) {
+                $debt = $bill->debt()->lockForUpdate()->first();
+
+                if ($debt !== null) {
+                    $newBalance = max(0, (float) $debt->balance - (float) $bill->amount);
+                    $debt->forceFill(['balance' => $newBalance])->save();
+                }
+            }
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment recorded.')]);
+
+        return to_route('bills.index');
+    }
+
+    private function advanceDueDate(Bill $bill, CarbonInterface $from): CarbonInterface
+    {
+        $anchor = Date::parse($bill->next_due_on)->max($from);
+
+        return match ($bill->frequency) {
+            'weekly' => $anchor->addWeek(),
+            'biweekly' => $anchor->addWeeks(2),
+            'monthly' => $anchor->addMonthNoOverflow(),
+            'quarterly' => $anchor->addMonthsNoOverflow(3),
+            'annual' => $anchor->addYearNoOverflow(),
+            'custom' => $anchor->addDays(max(1, (int) $bill->interval_days)),
+            default => $anchor->addMonthNoOverflow(),
+        };
     }
 }

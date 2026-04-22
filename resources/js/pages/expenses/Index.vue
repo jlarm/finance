@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import { Search, X } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import ExpenseController from '@/actions/App/Http/Controllers/ExpenseController';
+import ExpenseForm from '@/components/finance/forms/ExpenseForm.vue';
+import FormSelect from '@/components/finance/FormSelect.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,11 +16,14 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import ExpenseForm from '@/components/finance/forms/ExpenseForm.vue';
-import FormSelect from '@/components/finance/FormSelect.vue';
-import ExpenseController from '@/actions/App/Http/Controllers/ExpenseController';
-import { index } from '@/routes/expenses';
+import {
+    categoryLabel,
+    EXPENSE_CATEGORIES
+    
+} from '@/lib/categories';
+import type {ExpenseCategory} from '@/lib/categories';
 import { formatDate } from '@/lib/utils';
+import { index } from '@/routes/expenses';
 
 type Expense = {
     id: number;
@@ -25,8 +31,7 @@ type Expense = {
     occurred_on: string;
     description: string;
     notes: string | null;
-    expense_category_id: number;
-    category: { id: number; name: string } | null;
+    category: ExpenseCategory | null;
 };
 
 type Paginated<T> = {
@@ -43,8 +48,7 @@ type Paginated<T> = {
 
 const props = defineProps<{
     expenses: Paginated<Expense>;
-    categories: { id: number; name: string }[];
-    filters: { from?: string; to?: string; category?: number; search?: string };
+    filters: { from?: string; to?: string; category?: ExpenseCategory; search?: string };
 }>();
 
 defineOptions({
@@ -60,14 +64,10 @@ const money = (v: number) =>
     }).format(v ?? 0);
 
 const search = ref(props.filters.search ?? '');
-const categoryId = ref<number | null>(props.filters.category ?? null);
-
-const categoryOptions = computed(() =>
-    props.categories.map((cat) => ({ value: cat.id, label: cat.name })),
-);
+const category = ref<ExpenseCategory | null>(props.filters.category ?? null);
 
 const hasFilters = computed(
-    () => !!(search.value || categoryId.value !== null),
+    () => !!(search.value || category.value !== null),
 );
 
 const applyFilters = () => {
@@ -75,7 +75,7 @@ const applyFilters = () => {
         index().url,
         {
             search: search.value || undefined,
-            category: categoryId.value ?? undefined,
+            category: category.value ?? undefined,
         },
         { preserveState: true, preserveScroll: true, replace: true },
     );
@@ -83,19 +83,25 @@ const applyFilters = () => {
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
 watch(search, () => {
-    if (searchTimer) clearTimeout(searchTimer);
+    if (searchTimer) {
+        clearTimeout(searchTimer);
+    }
+
     searchTimer = setTimeout(applyFilters, 300);
 });
 
-watch(categoryId, applyFilters);
+watch(category, applyFilters);
 
 const clearFilters = () => {
     search.value = '';
-    categoryId.value = null;
+    category.value = null;
 };
 
 const goToPage = (url: string | null) => {
-    if (!url) return;
+    if (!url) {
+return;
+}
+
     router.get(url, {}, { preserveState: true, preserveScroll: true });
 };
 
@@ -118,8 +124,14 @@ const handleSuccess = () => {
 };
 
 const handleDelete = () => {
-    if (!editing.value) return;
-    if (!confirm('Delete this expense? This cannot be undone.')) return;
+    if (!editing.value) {
+return;
+}
+
+    if (!confirm('Delete this expense? This cannot be undone.')) {
+return;
+}
+
     router.delete(ExpenseController.destroy({ expense: editing.value.id }).url, {
         preserveScroll: true,
         onSuccess: () => {
@@ -155,9 +167,9 @@ const handleDelete = () => {
                 />
             </div>
             <FormSelect
-                v-model="categoryId"
+                v-model="category"
                 name="category_filter"
-                :options="categoryOptions"
+                :options="EXPENSE_CATEGORIES"
                 placeholder="All categories"
                 class="sm:w-56"
             />
@@ -220,7 +232,7 @@ const handleDelete = () => {
                             <td class="px-4 py-3">{{ formatDate(expense.occurred_on) }}</td>
                             <td class="px-4 py-3">{{ expense.description }}</td>
                             <td class="px-4 py-3 text-muted-foreground">
-                                {{ expense.category?.name ?? '—' }}
+                                {{ categoryLabel(expense.category) }}
                             </td>
                             <td class="px-4 py-3 text-right tabular-nums">
                                 {{ money(expense.amount) }}
@@ -294,7 +306,6 @@ const handleDelete = () => {
                             ? ExpenseController.update({ expense: editing.id })
                             : ExpenseController.store()
                     "
-                    :categories="categories"
                     :expense="editing ?? undefined"
                     :submit-label="editing ? 'Save changes' : 'Save expense'"
                     :deletable="!!editing"

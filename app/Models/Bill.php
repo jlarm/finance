@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ExpenseCategory;
 use Database\Factories\BillFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,7 +14,8 @@ use Illuminate\Support\Carbon;
 
 #[Fillable([
     'user_id',
-    'expense_category_id',
+    'category',
+    'debt_id',
     'name',
     'amount',
     'frequency',
@@ -32,6 +34,7 @@ class Bill extends Model
     protected function casts(): array
     {
         return [
+            'category' => ExpenseCategory::class,
             'amount' => 'decimal:2',
             'interval_days' => 'integer',
             'next_due_on' => 'date:Y-m-d',
@@ -46,9 +49,9 @@ class Bill extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function category(): BelongsTo
+    public function debt(): BelongsTo
     {
-        return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
+        return $this->belongsTo(Debt::class);
     }
 
     public function scopeActive(Builder $query): Builder

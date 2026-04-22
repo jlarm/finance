@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ExpenseCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,17 +28,13 @@ class StoreBudgetTargetRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'expense_category_id' => [
-                'required',
-                'integer',
-                Rule::exists('expense_categories', 'id')->where('user_id', $this->user()->id),
-            ],
+            'category' => ['required', Rule::enum(ExpenseCategory::class)],
             'period_month' => [
                 'required',
                 'date_format:Y-m-d',
                 Rule::unique('budget_targets')->where(fn ($q) => $q
                     ->where('user_id', $this->user()->id)
-                    ->where('expense_category_id', $this->input('expense_category_id'))
+                    ->where('category', $this->input('category'))
                     ->where('period_month', $this->input('period_month'))
                 ),
             ],
@@ -51,7 +48,6 @@ class StoreBudgetTargetRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'expense_category_id' => 'category',
             'period_month' => 'month',
         ];
     }
@@ -62,7 +58,6 @@ class StoreBudgetTargetRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'expense_category_id.exists' => 'Pick one of your categories.',
             'period_month.unique' => 'You already have a budget target for this category in that month.',
         ];
     }

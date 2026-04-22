@@ -32,7 +32,7 @@ class DashboardService
      *     available_cash: float,
      *     safe_to_spend: array{amount: float, days_remaining: int, per_day: float},
      *     recent_insights: Collection<int, AiInsight>,
-     *     category_overspending: Collection<int, array{category_id: int, category: string, spent: float, target: float, over_by: float, percentage: float}>
+     *     category_overspending: Collection<int, array{category: string, label: string, spent: float, target: float, over_by: float, percentage: float}>
      * }
      */
     public function summary(User $user): array
@@ -195,12 +195,11 @@ class DashboardService
     /**
      * Categories whose spending has exceeded the configured budget target for the period.
      *
-     * @return Collection<int, array{category_id: int, category: string, spent: float, target: float, over_by: float, percentage: float}>
+     * @return Collection<int, array{category: string, label: string, spent: float, target: float, over_by: float, percentage: float}>
      */
     public function categoryOverspendingFlags(User $user, Carbon $periodStart, Carbon $periodEnd): Collection
     {
         $targets = BudgetTarget::query()
-            ->with('category:id,name')
             ->where('user_id', $user->id)
             ->forMonth($periodStart->year, $periodStart->month)
             ->get();
@@ -210,20 +209,22 @@ class DashboardService
         }
 
         $spendByCategory = Expense::query()
+            ->toBase()
             ->where('user_id', $user->id)
-            ->between($periodStart->toDateString(), $periodEnd->toDateString())
-            ->selectRaw('expense_category_id, SUM(amount) as total')
-            ->groupBy('expense_category_id')
-            ->pluck('total', 'expense_category_id');
+            ->whereBetween('occurred_on', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->selectRaw('category, SUM(amount) as total')
+            ->groupBy('category')
+            ->pluck('total', 'category');
 
         return $targets
             ->map(function (BudgetTarget $target) use ($spendByCategory) {
-                $spent = (float) ($spendByCategory[$target->expense_category_id] ?? 0);
+                $categoryValue = $target->category?->value;
+                $spent = (float) ($spendByCategory[$categoryValue] ?? 0);
                 $targetAmount = (float) $target->amount;
 
                 return [
-                    'category_id' => $target->expense_category_id,
-                    'category' => $target->category?->name ?? 'Uncategorized',
+                    'category' => (string) $categoryValue,
+                    'label' => $target->category?->label() ?? 'Uncategorized',
                     'spent' => round($spent, 2),
                     'target' => round($targetAmount, 2),
                     'over_by' => round($spent - $targetAmount, 2),

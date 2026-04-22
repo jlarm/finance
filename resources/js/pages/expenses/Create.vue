@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import ExpenseController from '@/actions/App/Http/Controllers/ExpenseController';
+import ExpenseForm from '@/components/finance/forms/ExpenseForm.vue';
 import Heading from '@/components/Heading.vue';
 import { Card, CardContent } from '@/components/ui/card';
-import ExpenseForm from '@/components/finance/forms/ExpenseForm.vue';
 import { index } from '@/routes/expenses';
 
 defineProps<{

@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports;
 
+use App\Enums\ExpenseCategory;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -20,9 +21,9 @@ class CategoryTrendsReport
      * @return array{
      *     range: array{from: string, to: string, months: int},
      *     categories: array<int, array{
-     *         category_id: int,
+     *         category: string,
      *         name: string,
-     *         color: ?string,
+     *         color: string,
      *         series: array<int, array{month: string, total: float}>,
      *         total: float,
      *         average_monthly: float,
@@ -42,18 +43,18 @@ class CategoryTrendsReport
         $expression = $this->monthExpression('occurred_on');
 
         $rows = $user->expenses()
-            ->with('category:id,name,color')
+            ->toBase()
             ->whereBetween('occurred_on', [$from, $to])
-            ->selectRaw("expense_category_id, {$expression} as month, SUM(amount) as total")
-            ->groupBy('expense_category_id', DB::raw($expression))
-            ->orderBy('expense_category_id')
+            ->selectRaw("category, {$expression} as month, SUM(amount) as total")
+            ->groupBy('category', DB::raw($expression))
+            ->orderBy('category')
             ->orderBy('month')
             ->get();
 
-        $grouped = $rows->groupBy('expense_category_id');
+        $grouped = $rows->groupBy('category');
 
-        $categories = $grouped->map(function ($rows, int $categoryId) use ($monthKeys): array {
-            $category = $rows->first()?->category;
+        $categories = $grouped->map(function ($rows, string $categoryValue) use ($monthKeys): array {
+            $enum = ExpenseCategory::tryFrom($categoryValue);
 
             $series = [];
             $total = 0.0;
@@ -66,9 +67,9 @@ class CategoryTrendsReport
             }
 
             return [
-                'category_id' => $categoryId,
-                'name' => (string) ($category?->name ?? 'Uncategorized'),
-                'color' => $category?->color,
+                'category' => $categoryValue,
+                'name' => $enum?->label() ?? 'Uncategorized',
+                'color' => $enum?->color() ?? '#6b7280',
                 'series' => $series,
                 'total' => round($total, 2),
                 'average_monthly' => round($total / max(count($monthKeys), 1), 2),
